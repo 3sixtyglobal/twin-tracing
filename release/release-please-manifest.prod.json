@@ -1,0 +1,6 @@
+{
+	"packages/tracing-models": "0.0.0",
+	"packages/tracing-connector-entity-storage": "0.0.0",
+	"packages/tracing-service": "0.0.0",
+	"packages/tracing-rest-client": "0.0.0"
+}

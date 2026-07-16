@@ -1,0 +1,847 @@
+{
+	"openapi": "3.1.1",
+	"info": {
+		"title": "TWIN - Tracing Endpoints",
+		"description": "REST API for TWIN - Tracing Endpoints.",
+		"version": "1.0.0",
+		"license": {
+			"name": "Apache 2.0 License",
+			"url": "https://opensource.org/licenses/Apache-2.0"
+		}
+	},
+	"servers": [
+		{
+			"url": "https://localhost"
+		}
+	],
+	"tags": [
+		{
+			"name": "Tracing",
+			"description": "Endpoints which are modelled to access a tracing contract."
+		}
+	],
+	"paths": {
+		"/tracing": {
+			"post": {
+				"operationId": "tracingSpanStart",
+				"summary": "Start a span",
+				"tags": [
+					"Tracing"
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"requestBody": {
+					"description": "Start a new span.",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TracingSpanStartRequest"
+							},
+							"examples": {
+								"tracingSpanStartRequestExample": {
+									"value": {
+										"name": "process-order",
+										"options": {
+											"kind": "internal"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Response for starting a span.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Span"
+								},
+								"examples": {
+									"tracingSpanStartResponseExample": {
+										"value": {
+											"name": "process-order",
+											"kind": "internal",
+											"status": "unset",
+											"context": {
+												"traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+												"spanId": "00f067aa0ba902b7",
+												"traceFlags": 1
+											},
+											"startTs": 1715252922273
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "tracingListSpans",
+				"summary": "Get a list of the spans",
+				"tags": [
+					"Tracing"
+				],
+				"parameters": [
+					{
+						"name": "traceId",
+						"description": "The id of the trace to filter by.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "4bf92f3577b34da6a3ce929d0e0e4736"
+					},
+					{
+						"name": "spanId",
+						"description": "The id of the span to filter by.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "status",
+						"description": "The status to filter by.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"$ref": "#/components/schemas/SpanStatus"
+						}
+					},
+					{
+						"name": "kind",
+						"description": "The kind to filter by.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"$ref": "#/components/schemas/SpanKind"
+						}
+					},
+					{
+						"name": "timeStart",
+						"description": "The inclusive start time to filter the span start by, as a timestamp in ms.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "timeEnd",
+						"description": "The inclusive end time to filter the span start by, as a timestamp in ms.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "cursor",
+						"description": "The optional cursor to get next chunk.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "limit",
+						"description": "Limit the number of entities to return.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Response for span list request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TracingListResponse"
+								},
+								"examples": {
+									"tracingListResponseExample": {
+										"value": {
+											"entities": [
+												{
+													"name": "process-order",
+													"kind": "internal",
+													"status": "ok",
+													"context": {
+														"traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+														"spanId": "00f067aa0ba902b7",
+														"traceFlags": 1
+													},
+													"startTs": 1715252922273,
+													"endTs": 1715252922512,
+													"durationMs": 239
+												}
+											],
+											"cursor": "1"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/tracing/{spanId}": {
+			"put": {
+				"operationId": "tracingSpanEnd",
+				"summary": "End a span",
+				"tags": [
+					"Tracing"
+				],
+				"parameters": [
+					{
+						"name": "spanId",
+						"description": "The id of the span to end.",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "00f067aa0ba902b7"
+					}
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"requestBody": {
+					"description": "End a span, finalizing its status and duration.",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Span"
+							},
+							"examples": {
+								"tracingSpanEndRequestExample": {
+									"value": {
+										"name": "process-order",
+										"kind": "internal",
+										"status": "ok",
+										"context": {
+											"traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+											"spanId": "00f067aa0ba902b7",
+											"traceFlags": 1
+										},
+										"startTs": 1715252922273,
+										"endTs": 1715252922512,
+										"durationMs": 239
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "The rest request ended in success with no data."
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/tracing/trace/{traceId}": {
+			"get": {
+				"operationId": "tracingGetTrace",
+				"summary": "Get all the spans belonging to a trace",
+				"tags": [
+					"Tracing"
+				],
+				"parameters": [
+					{
+						"name": "traceId",
+						"description": "The id of the trace to retrieve.",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "4bf92f3577b34da6a3ce929d0e0e4736"
+					}
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Response for a get trace request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TracingGetTraceResponse"
+								},
+								"examples": {
+									"tracingGetTraceResponseExample": {
+										"value": {
+											"spans": [
+												{
+													"name": "process-order",
+													"kind": "internal",
+													"status": "ok",
+													"context": {
+														"traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+														"spanId": "00f067aa0ba902b7",
+														"traceFlags": 1
+													},
+													"startTs": 1715252922273,
+													"endTs": 1715252922512,
+													"durationMs": 239
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"Error": {
+				"description": "Model to describe serialized error.",
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The name for the error."
+					},
+					"message": {
+						"type": "string",
+						"description": "The message for the error as an i18n key."
+					},
+					"source": {
+						"type": "string",
+						"description": "The source of the error."
+					},
+					"properties": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "Any additional information for the error."
+					},
+					"stack": {
+						"type": "string",
+						"description": "The stack trace for the error."
+					},
+					"cause": {
+						"$ref": "#/components/schemas/Error"
+					}
+				},
+				"required": [
+					"name",
+					"message"
+				]
+			},
+			"Span": {
+				"description": "A span representing a timed unit of work within a trace.",
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The name of the span, should be a stable low-cardinality label."
+					},
+					"kind": {
+						"$ref": "#/components/schemas/SpanKind"
+					},
+					"status": {
+						"$ref": "#/components/schemas/SpanStatus"
+					},
+					"context": {
+						"$ref": "#/components/schemas/SpanContext"
+					},
+					"parentSpanId": {
+						"type": "string",
+						"description": "The id of the parent span, when the span is not the root of the trace."
+					},
+					"startTs": {
+						"type": "number",
+						"description": "The time the span started as milliseconds since the epoch."
+					},
+					"endTs": {
+						"type": "number",
+						"description": "The time the span ended as milliseconds since the epoch, undefined while the span is in-flight."
+					},
+					"durationMs": {
+						"type": "number",
+						"description": "The duration of the span in milliseconds, populated when the span ends."
+					},
+					"attributes": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "The key-value attributes describing the span."
+					},
+					"events": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SpanEvent"
+						},
+						"description": "The events recorded within the span."
+					},
+					"links": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SpanLink"
+						},
+						"description": "The links to other spans."
+					}
+				},
+				"required": [
+					"name",
+					"kind",
+					"status",
+					"context",
+					"startTs"
+				]
+			},
+			"SpanContext": {
+				"description": "The context which uniquely identifies a span within a trace, following the W3C Trace Context format.",
+				"type": "object",
+				"properties": {
+					"traceId": {
+						"type": "string",
+						"description": "The id of the trace the span belongs to, as a 16 byte hex string."
+					},
+					"spanId": {
+						"type": "string",
+						"description": "The id of the span, as an 8 byte hex string."
+					},
+					"traceFlags": {
+						"type": "number",
+						"description": "The trace flags bitfield, where the least significant bit indicates the span is sampled."
+					}
+				},
+				"required": [
+					"traceId",
+					"spanId",
+					"traceFlags"
+				]
+			},
+			"SpanEvent": {
+				"description": "A timestamped annotation recorded within a span to mark a milestone.",
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The name of the event."
+					},
+					"ts": {
+						"type": "number",
+						"description": "The timestamp of the event as milliseconds since the epoch."
+					},
+					"attributes": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "The optional attributes associated with the event."
+					}
+				},
+				"required": [
+					"name",
+					"ts"
+				]
+			},
+			"SpanKind": {
+				"description": "The kind of span, describing the role the operation plays in the overall flow.",
+				"anyOf": [
+					{
+						"const": "internal",
+						"description": "A span representing pure in-process work."
+					},
+					{
+						"const": "client",
+						"description": "A span representing an outbound request to another service or dependency."
+					},
+					{
+						"const": "server",
+						"description": "A span representing the handling of an inbound request."
+					},
+					{
+						"const": "producer",
+						"description": "A span representing the publishing of a message to a broker or queue."
+					},
+					{
+						"const": "consumer",
+						"description": "A span representing the processing of a message from a broker or queue."
+					}
+				]
+			},
+			"SpanLink": {
+				"description": "A causal reference from one span to another span, which may belong to a different trace.",
+				"type": "object",
+				"properties": {
+					"context": {
+						"$ref": "#/components/schemas/SpanContext"
+					},
+					"attributes": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "The optional attributes describing the link."
+					}
+				},
+				"required": [
+					"context"
+				]
+			},
+			"SpanOptions": {
+				"description": "The options used when starting a span.",
+				"type": "object",
+				"properties": {
+					"kind": {
+						"$ref": "#/components/schemas/SpanKind"
+					},
+					"parentContext": {
+						"$ref": "#/components/schemas/SpanContext"
+					},
+					"startTs": {
+						"type": "number",
+						"description": "The time the span started as milliseconds since the epoch, defaults to the current time."
+					},
+					"attributes": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "The key-value attributes to record on the span at creation."
+					},
+					"links": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SpanLink"
+						},
+						"description": "The links to other spans to record on the span at creation."
+					}
+				}
+			},
+			"SpanStatus": {
+				"description": "The status of a span.",
+				"anyOf": [
+					{
+						"const": "unset",
+						"description": "The span has no explicit status, this is the default."
+					},
+					{
+						"const": "ok",
+						"description": "The operation completed successfully."
+					},
+					{
+						"const": "error",
+						"description": "The operation ended in an error."
+					}
+				]
+			},
+			"TracingGetTraceResponse": {
+				"type": "object",
+				"properties": {
+					"spans": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Span"
+						},
+						"description": "The spans belonging to the trace, ordered by their start time ascending."
+					}
+				},
+				"required": [
+					"spans"
+				],
+				"description": "The response payload."
+			},
+			"TracingListResponse": {
+				"type": "object",
+				"properties": {
+					"entities": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Span"
+						},
+						"description": "The spans matching the query conditions."
+					},
+					"cursor": {
+						"type": "string",
+						"description": "An optional cursor, when defined can be used to call query to get more entities."
+					}
+				},
+				"required": [
+					"entities"
+				],
+				"description": "The response payload."
+			},
+			"TracingSpanStartRequest": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The name of the span."
+					},
+					"options": {
+						"$ref": "#/components/schemas/SpanOptions"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"description": "The data to be used to start the span."
+			}
+		},
+		"securitySchemes": {
+			"jwtBearerAuthScheme": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	}
+}
