@@ -1,0 +1,254 @@
+// Copyright 2026 IOTA Stiftung.
+// SPDX-License-Identifier: Apache-2.0.
+import { Guards, Is, NotFoundError } from "@twin.org/core";
+import { LogicalOperator, type EntityCondition, type SortDirection } from "@twin.org/entity";
+import {
+	EntityStorageConnectorFactory,
+	type IEntityStorageConnector
+} from "@twin.org/entity-storage-models";
+import { nameof } from "@twin.org/nameof";
+import {
+	SpanHelper,
+	type ISpan,
+	type ISpanOptions,
+	type ITracingConnector,
+	type SpanStatus
+} from "@twin.org/tracing-models";
+import { SpanEntity } from "./entities/spanEntity.js";
+import type { SpanLink } from "./entities/spanLink.js";
+import type { IEntityStorageTracingConnectorConstructorOptions } from "./models/IEntityStorageTracingConnectorConstructorOptions.js";
+
+/**
+ * Class for performing tracing operations in entity storage.
+ */
+export class EntityStorageTracingConnector implements ITracingConnector {
+	/**
+	 * The namespace supported by the tracing connector.
+	 */
+	public static readonly NAMESPACE: string = "entity-storage";
+
+	/**
+	 * Runtime name for the class.
+	 */
+	public static readonly CLASS_NAME: string = nameof<EntityStorageTracingConnector>();
+
+	/**
+	 * The entity storage for the spans.
+	 * @internal
+	 */
+	private readonly _spanStorage: IEntityStorageConnector<SpanEntity>;
+
+	/**
+	 * Create a new instance of EntityStorageTracingConnector.
+	 * @param options The options for the connector.
+	 */
+	constructor(options?: IEntityStorageTracingConnectorConstructorOptions) {
+		this._spanStorage = EntityStorageConnectorFactory.get(
+			options?.spanStorageConnectorType ?? "span"
+		);
+	}
+
+	/**
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
+	 */
+	public className(): string {
+		return EntityStorageTracingConnector.CLASS_NAME;
+	}
+
+	/**
+	 * Start a new span, persisting it as an open span.
+	 * @param name The name of the span.
+	 * @param options The options for the span.
+	 * @returns The started span, including its minted context.
+	 */
+	public async startSpan(name: string, options?: ISpanOptions): Promise<ISpan> {
+		Guards.stringValue(EntityStorageTracingConnector.CLASS_NAME, nameof(name), name);
+
+		const span = SpanHelper.startSpan(name, options);
+
+		await this.recordSpan(span);
+
+		return span;
+	}
+
+	/**
+	 * End a span, finalizing its status and duration and updating the persisted span. The span must
+	 * already exist (i.e. have been started/recorded); ending a span that was never started fails
+	 * rather than silently creating a completed row.
+	 * @param span The span to end.
+	 * @param status The status to set on the span, defaults to ok.
+	 * @returns A promise that resolves when the span has been ended.
+	 * @throws NotFoundError if no span with the given id has been persisted.
+	 */
+	public async endSpan(span: ISpan, status?: SpanStatus): Promise<void> {
+		Guards.object<ISpan>(EntityStorageTracingConnector.CLASS_NAME, nameof(span), span);
+		Guards.object(EntityStorageTracingConnector.CLASS_NAME, nameof(span.context), span.context);
+		Guards.stringValue(
+			EntityStorageTracingConnector.CLASS_NAME,
+			nameof(span.context.spanId),
+			span.context.spanId
+		);
+
+		const existing = await this._spanStorage.get(span.context.spanId);
+		if (Is.empty(existing)) {
+			throw new NotFoundError(
+				EntityStorageTracingConnector.CLASS_NAME,
+				"spanNotFound",
+				span.context.spanId
+			);
+		}
+
+		SpanHelper.endSpan(span, status);
+
+		await this._spanStorage.set(this.spanToEntity(span));
+	}
+
+	/**
+	 * Record a pre-built span verbatim, persisting it as-is (upsert) without minting a new context
+	 * or finalizing it; the span may be open or completed. Used by fan-out connectors and reused by
+	 * `startSpan` to persist the open span.
+	 * @param span The span to record.
+	 * @returns A promise that resolves when the span has been recorded.
+	 */
+	public async recordSpan(span: ISpan): Promise<void> {
+		Guards.object<ISpan>(EntityStorageTracingConnector.CLASS_NAME, nameof(span), span);
+		Guards.object(EntityStorageTracingConnector.CLASS_NAME, nameof(span.context), span.context);
+		Guards.stringValue(
+			EntityStorageTracingConnector.CLASS_NAME,
+			nameof(span.context.spanId),
+			span.context.spanId
+		);
+
+		await this._spanStorage.set(this.spanToEntity(span));
+	}
+
+	/**
+	 * Query the spans.
+	 * @param conditions The conditions to match for the entities.
+	 * @param sortProperties The optional sort order.
+	 * @param cursor The cursor to request the next chunk of entities.
+	 * @param limit Limit the number of entities to return.
+	 * @returns All the entities for the storage matching the conditions,
+	 * and a cursor which can be used to request more entities.
+	 */
+	public async query(
+		conditions?: EntityCondition<ISpan>,
+		sortProperties?: {
+			property: keyof Omit<ISpan, "attributes" | "events" | "links" | "context">;
+			sortDirection: SortDirection;
+		}[],
+		cursor?: string,
+		limit?: number
+	): Promise<{
+		/**
+		 * The spans matching the query conditions.
+		 */
+		entities: ISpan[];
+		/**
+		 * An optional cursor, when defined can be used to call query to get more entities.
+		 */
+		cursor?: string;
+	}> {
+		const finalConditions: EntityCondition<SpanEntity> = {
+			conditions: [],
+			logicalOperator: LogicalOperator.And
+		};
+
+		if (!Is.empty(conditions)) {
+			finalConditions.conditions.push(conditions);
+		}
+
+		const result = await this._spanStorage.query(
+			finalConditions.conditions.length > 0 ? finalConditions : undefined,
+			sortProperties,
+			undefined,
+			cursor,
+			limit
+		);
+
+		return {
+			entities: result.entities.map(entity => this.entityToSpan(entity)),
+			cursor: result.cursor
+		};
+	}
+
+	/**
+	 * Map a span to its entity storage representation.
+	 * @param span The span to map.
+	 * @returns The span entity.
+	 * @internal
+	 */
+	private spanToEntity(span: ISpan): SpanEntity {
+		const entity = new SpanEntity();
+		entity.spanId = span.context.spanId;
+		entity.traceId = span.context.traceId;
+		entity.parentSpanId = span.parentSpanId;
+		entity.name = span.name;
+		entity.kind = span.kind;
+		entity.status = span.status;
+		entity.traceFlags = span.context.traceFlags;
+		entity.startTs = span.startTs;
+		entity.endTs = span.endTs;
+		entity.durationMs = span.durationMs;
+		entity.attributes = span.attributes;
+		entity.events = span.events;
+		entity.links = Is.arrayValue(span.links)
+			? span.links.map(link => ({
+					traceId: link.context.traceId,
+					spanId: link.context.spanId,
+					traceFlags: link.context.traceFlags,
+					attributes: link.attributes
+				}))
+			: undefined;
+		return entity;
+	}
+
+	/**
+	 * Map a span entity back to a span.
+	 * @param entity The entity to map.
+	 * @returns The span.
+	 * @internal
+	 */
+	private entityToSpan(entity: Partial<SpanEntity>): ISpan {
+		const span: ISpan = {
+			name: entity.name as string,
+			kind: entity.kind as ISpan["kind"],
+			status: entity.status as ISpan["status"],
+			context: {
+				traceId: entity.traceId as string,
+				spanId: entity.spanId as string,
+				traceFlags: entity.traceFlags as number
+			},
+			startTs: entity.startTs as number
+		};
+
+		if (Is.stringValue(entity.parentSpanId)) {
+			span.parentSpanId = entity.parentSpanId;
+		}
+		if (Is.integer(entity.endTs)) {
+			span.endTs = entity.endTs;
+		}
+		if (Is.integer(entity.durationMs)) {
+			span.durationMs = entity.durationMs;
+		}
+		if (Is.object(entity.attributes)) {
+			span.attributes = entity.attributes;
+		}
+		if (Is.arrayValue(entity.events)) {
+			span.events = entity.events;
+		}
+		if (Is.arrayValue<SpanLink>(entity.links)) {
+			span.links = entity.links.map(link => ({
+				context: {
+					traceId: link.traceId,
+					spanId: link.spanId,
+					traceFlags: link.traceFlags ?? SpanHelper.TRACE_FLAG_SAMPLED
+				},
+				attributes: link.attributes
+			}));
+		}
+
+		return span;
+	}
+}

@@ -1,0 +1,33 @@
+# Tracing Packages
+
+## tracing-models
+
+The package provides the shared domain contracts for tracing across this repository, including the span structures and interfaces that connectors and services depend on. It establishes a consistent, OpenTelemetry-aligned foundation so tracing components can interoperate without duplicating core definitions.
+
+- [README](../packages/tracing-models/README.md)
+- [Examples](../packages/tracing-models/docs/examples.md)
+- [Changelog](../packages/tracing-models/docs/changelog.md)
+
+## tracing-connector-entity-storage
+
+This package provides an entity-storage-backed tracing connector for durable span persistence. It supports scenarios where spans need to be retained, queried, and integrated with broader storage and processing workflows.
+
+- [README](../packages/tracing-connector-entity-storage/README.md)
+- [Examples](../packages/tracing-connector-entity-storage/docs/examples.md)
+- [Changelog](../packages/tracing-connector-entity-storage/docs/changelog.md)
+
+## tracing-service
+
+This package exposes tracing operations through service routes and API contracts for server-side integration. It implements the tracing component contract and resolves a tracing connector through the factory pattern.
+
+- [README](../packages/tracing-service/README.md)
+- [Examples](../packages/tracing-service/docs/examples.md)
+- [Changelog](../packages/tracing-service/docs/changelog.md)
+
+## tracing-rest-client
+
+This package provides a client for interacting with tracing service endpoints from applications and services. It implements the same tracing component contract as the service, enabling remote span creation, completion, and querying.
+
+- [README](../packages/tracing-rest-client/README.md)
+- [Examples](../packages/tracing-rest-client/docs/examples.md)
+- [Changelog](../packages/tracing-rest-client/docs/changelog.md)

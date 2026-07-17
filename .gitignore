@@ -1,0 +1,11 @@
+node_modules
+.eslintcache
+.updatable-packages
+**/dist/es
+**/dist/types
+**/dist/locales
+coverage
+*.tgz
+**/.tmp
+.env.dev
+vitest.config.ts.timestamp*

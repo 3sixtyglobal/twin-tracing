@@ -1,0 +1,7 @@
+{
+	"error": {
+		"spanHelper": {
+			"traceFlagsOutOfRange": "The trace flags value \"{traceFlags}\" is outside the valid range 0 to 255"
+		}
+	}
+}

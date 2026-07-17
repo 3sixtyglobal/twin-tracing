@@ -1,0 +1,7 @@
+{
+	"error": {
+		"tracingRoutes": {
+			"spanIdMismatch": "The span id in the path \"{pathSpanId}\" does not match the span id in the body \"{bodySpanId}\""
+		}
+	}
+}
