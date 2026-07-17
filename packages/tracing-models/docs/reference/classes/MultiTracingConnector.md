@@ -1,7 +1,6 @@
 # Class: MultiTracingConnector
 
 Class for performing tracing operations on multiple connectors.
-The span context is minted centrally and the completed span is persisted to each child connector.
 
 ## Implements
 
@@ -67,7 +66,8 @@ The class name of the component.
 
 > **startSpan**(`name`, `options?`): `Promise`\<[`ISpan`](../interfaces/ISpan.md)\>
 
-Start a new span.
+Start a new span. The context is minted centrally and the open span is recorded on every
+child connector, so each backend sees the same span from the moment it starts.
 
 #### Parameters
 
@@ -99,7 +99,9 @@ The started span, including its minted context.
 
 > **endSpan**(`span`, `status?`): `Promise`\<`void`\>
 
-End a span, finalizing its status and duration and persisting it to all child connectors.
+End a span, finalizing its status and duration and recording the completed span on all child
+connectors. Children are updated via `recordSpan` (not `endSpan`) so the centrally-minted
+span is replicated rather than re-finalized per child.
 
 #### Parameters
 

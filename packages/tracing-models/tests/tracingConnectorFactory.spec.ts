@@ -64,6 +64,36 @@ describe("SpanHelper", () => {
 		SpanHelper.endSpan(span);
 		expect(span.status).toEqual(SpanStatus.Ok);
 	});
+
+	test("endSpan honours an already-set endTs (idempotent double end)", async () => {
+		const span = SpanHelper.startSpan("do-work", { startTs: 1000 });
+		SpanHelper.endSpan(span, SpanStatus.Ok, 1250);
+		SpanHelper.endSpan(span, SpanStatus.Ok);
+		expect(span.endTs).toEqual(1250);
+		expect(span.durationMs).toEqual(250);
+	});
+
+	test("endSpan clamps a negative duration to zero", async () => {
+		const span = SpanHelper.startSpan("do-work", { startTs: 2000 });
+		SpanHelper.endSpan(span, SpanStatus.Ok, 1000);
+		expect(span.durationMs).toEqual(0);
+	});
+
+	test("createContext rejects a malformed parent trace id", async () => {
+		expect(() =>
+			SpanHelper.createContext({ traceId: "not-hex", spanId: "00f067aa0ba902b7", traceFlags: 1 })
+		).toThrow();
+	});
+
+	test("createContext rejects an out-of-range traceFlags", async () => {
+		expect(() =>
+			SpanHelper.createContext({
+				traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+				spanId: "00f067aa0ba902b7",
+				traceFlags: 999
+			})
+		).toThrow();
+	});
 });
 
 describe("SilentTracingConnector", () => {

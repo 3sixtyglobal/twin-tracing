@@ -4,19 +4,20 @@ import { BaseRestClient } from "@twin.org/api-core";
 import type { IBaseRestClientConfig, INoContentResponse } from "@twin.org/api-models";
 import { Coerce, Guards } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
-import type {
-	ISpan,
-	ISpanOptions,
-	ITracingComponent,
-	ITracingGetTraceRequest,
-	ITracingGetTraceResponse,
-	ITracingListRequest,
-	ITracingListResponse,
-	ITracingSpanEndRequest,
-	ITracingSpanStartRequest,
-	ITracingSpanStartResponse,
-	SpanKind,
-	SpanStatus
+import {
+	SpanHelper,
+	type ISpan,
+	type ISpanOptions,
+	type ITracingComponent,
+	type ITracingGetTraceRequest,
+	type ITracingGetTraceResponse,
+	type ITracingListRequest,
+	type ITracingListResponse,
+	type ITracingSpanEndRequest,
+	type ITracingSpanStartRequest,
+	type ITracingSpanStartResponse,
+	type SpanKind,
+	type SpanStatus
 } from "@twin.org/tracing-models";
 import { HttpMethod } from "@twin.org/web";
 
@@ -83,9 +84,9 @@ export class TracingRestClient extends BaseRestClient implements ITracingCompone
 			span.context.spanId
 		);
 
-		if (status !== undefined) {
-			span.status = status;
-		}
+		// Finalize the caller's span locally (status/endTs/durationMs) so a REST caller's span
+		// matches the in-process path; the server honours the resulting endTs carried in the body.
+		SpanHelper.endSpan(span, status);
 
 		await this.fetch<ITracingSpanEndRequest, INoContentResponse>("/:spanId", HttpMethod.PUT, {
 			pathParams: {

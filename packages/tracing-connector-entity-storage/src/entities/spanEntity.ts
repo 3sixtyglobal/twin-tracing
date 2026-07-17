@@ -37,13 +37,13 @@ export class SpanEntity {
 	/**
 	 * The kind of the span.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", isSecondary: true })
 	public kind!: SpanKind;
 
 	/**
 	 * The status of the span.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", isSecondary: true })
 	public status!: SpanStatus;
 
 	/**

@@ -34,6 +34,16 @@ The options for the connector.
 
 Runtime name for the class.
 
+***
+
+### MAX\_GET\_TRACE\_PAGES {#max_get_trace_pages}
+
+> `readonly` `static` **MAX\_GET\_TRACE\_PAGES**: `number` = `1000`
+
+The maximum number of pages `getTrace` will request before stopping. A safety bound that
+prevents an unexpectedly large trace or a non-terminating connector cursor from looping
+unbounded; with the default page size this still covers very large traces.
+
 ## Methods
 
 ### className() {#classname}
@@ -191,7 +201,9 @@ and a cursor which can be used to request more entities.
 
 > **getTrace**(`traceId`): `Promise`\<`ISpan`[]\>
 
-Get all the spans belonging to a trace, ordered by their start time.
+Get all the spans belonging to a trace, ordered by their start time. The whole trace is paged
+into memory; paging is bounded by [TracingService.MAX\_GET\_TRACE\_PAGES](#max_get_trace_pages) as a safeguard
+against a pathologically large trace or a non-terminating cursor.
 
 #### Parameters
 

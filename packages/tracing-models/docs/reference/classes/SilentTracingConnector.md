@@ -116,6 +116,32 @@ A promise that resolves immediately without persisting the span.
 
 ***
 
+### recordSpan() {#recordspan}
+
+> **recordSpan**(`span`): `Promise`\<`void`\>
+
+Record a pre-built span to the connector.
+
+#### Parameters
+
+##### span
+
+[`ISpan`](../interfaces/ISpan.md)
+
+The span to record.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves immediately without persisting the span.
+
+#### Implementation of
+
+[`ITracingConnector`](../interfaces/ITracingConnector.md).[`recordSpan`](../interfaces/ITracingConnector.md#recordspan)
+
+***
+
 ### query() {#query}
 
 > **query**(`conditions?`, `sortProperties?`, `cursor?`, `limit?`): `Promise`\<\{ `entities`: [`ISpan`](../interfaces/ISpan.md)[]; `cursor?`: `string`; \}\>

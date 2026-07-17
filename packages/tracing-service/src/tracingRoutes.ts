@@ -6,7 +6,7 @@ import type {
 	IRestRoute,
 	ITag
 } from "@twin.org/api-models";
-import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
+import { Coerce, ComponentFactory, GeneralError, Guards } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
 import type {
 	ITracingComponent,
@@ -301,6 +301,21 @@ export async function tracingSpanEnd(
 	);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.spanId), request.pathParams.spanId);
 	Guards.object<ITracingSpanEndRequest["body"]>(ROUTES_SOURCE, nameof(request.body), request.body);
+	Guards.object(ROUTES_SOURCE, nameof(request.body.context), request.body.context);
+	Guards.stringValue(
+		ROUTES_SOURCE,
+		nameof(request.body.context.spanId),
+		request.body.context.spanId
+	);
+
+	// The path id is authoritative; a body targeting a different span is rejected so a mismatched
+	// PUT cannot end (or, via upsert, overwrite) an unrelated span.
+	if (request.pathParams.spanId !== request.body.context.spanId) {
+		throw new GeneralError("tracingRoutes", "spanIdMismatch", {
+			pathSpanId: request.pathParams.spanId,
+			bodySpanId: request.body.context.spanId
+		});
+	}
 
 	const component = ComponentFactory.get<ITracingComponent>(componentName);
 	await component.endSpan(request.body);

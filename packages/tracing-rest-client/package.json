@@ -33,7 +33,8 @@
 		"@twin.org/core": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/tracing-models": "0.0.1-next.1"
+		"@twin.org/tracing-models": "0.0.1-next.1",
+		"@twin.org/web": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

@@ -98,7 +98,9 @@ The started span, including its minted context.
 
 > **endSpan**(`span`, `status?`): `Promise`\<`void`\>
 
-End a span, finalizing its status and duration and updating the persisted span.
+End a span, finalizing its status and duration and updating the persisted span. The span must
+already exist (i.e. have been started/recorded); ending a span that was never started fails
+rather than silently creating a completed row.
 
 #### Parameters
 
@@ -120,9 +122,41 @@ The status to set on the span, defaults to ok.
 
 A promise that resolves when the span has been ended.
 
+#### Throws
+
+NotFoundError if no span with the given id has been persisted.
+
 #### Implementation of
 
 `ITracingConnector.endSpan`
+
+***
+
+### recordSpan() {#recordspan}
+
+> **recordSpan**(`span`): `Promise`\<`void`\>
+
+Record a pre-built span verbatim, persisting it as-is (upsert) without minting a new context
+or finalizing it; the span may be open or completed. Used by fan-out connectors and reused by
+`startSpan` to persist the open span.
+
+#### Parameters
+
+##### span
+
+`ISpan`
+
+The span to record.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves when the span has been recorded.
+
+#### Implementation of
+
+`ITracingConnector.recordSpan`
 
 ***
 

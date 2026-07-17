@@ -1,6 +1,6 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Guards, Is } from "@twin.org/core";
+import { Guards, Is, NotFoundError } from "@twin.org/core";
 import { LogicalOperator, type EntityCondition, type SortDirection } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -67,16 +67,19 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 
 		const span = SpanHelper.startSpan(name, options);
 
-		await this._spanStorage.set(this.spanToEntity(span));
+		await this.recordSpan(span);
 
 		return span;
 	}
 
 	/**
-	 * End a span, finalizing its status and duration and updating the persisted span.
+	 * End a span, finalizing its status and duration and updating the persisted span. The span must
+	 * already exist (i.e. have been started/recorded); ending a span that was never started fails
+	 * rather than silently creating a completed row.
 	 * @param span The span to end.
 	 * @param status The status to set on the span, defaults to ok.
 	 * @returns A promise that resolves when the span has been ended.
+	 * @throws NotFoundError if no span with the given id has been persisted.
 	 */
 	public async endSpan(span: ISpan, status?: SpanStatus): Promise<void> {
 		Guards.object<ISpan>(EntityStorageTracingConnector.CLASS_NAME, nameof(span), span);
@@ -87,7 +90,35 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			span.context.spanId
 		);
 
+		const existing = await this._spanStorage.get(span.context.spanId);
+		if (Is.empty(existing)) {
+			throw new NotFoundError(
+				EntityStorageTracingConnector.CLASS_NAME,
+				"spanNotFound",
+				span.context.spanId
+			);
+		}
+
 		SpanHelper.endSpan(span, status);
+
+		await this._spanStorage.set(this.spanToEntity(span));
+	}
+
+	/**
+	 * Record a pre-built span verbatim, persisting it as-is (upsert) without minting a new context
+	 * or finalizing it; the span may be open or completed. Used by fan-out connectors and reused by
+	 * `startSpan` to persist the open span.
+	 * @param span The span to record.
+	 * @returns A promise that resolves when the span has been recorded.
+	 */
+	public async recordSpan(span: ISpan): Promise<void> {
+		Guards.object<ISpan>(EntityStorageTracingConnector.CLASS_NAME, nameof(span), span);
+		Guards.object(EntityStorageTracingConnector.CLASS_NAME, nameof(span.context), span.context);
+		Guards.stringValue(
+			EntityStorageTracingConnector.CLASS_NAME,
+			nameof(span.context.spanId),
+			span.context.spanId
+		);
 
 		await this._spanStorage.set(this.spanToEntity(span));
 	}

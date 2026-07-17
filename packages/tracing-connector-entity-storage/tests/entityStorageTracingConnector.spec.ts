@@ -1,10 +1,11 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { NotFoundError } from "@twin.org/core";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof } from "@twin.org/nameof";
-import { type ISpan, SpanKind, SpanStatus } from "@twin.org/tracing-models";
+import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
 import type { SpanEntity } from "../src/entities/spanEntity.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";
 import { initSchema } from "../src/schema.js";
@@ -96,7 +97,7 @@ describe("EntityStorageTracingConnector", () => {
 		});
 
 		expect(byTrace.entities).toHaveLength(1);
-		const found = byTrace.entities[0] as ISpan;
+		const found = byTrace.entities[0];
 		expect(found.context.traceId).toEqual(root.context.traceId);
 		expect(found.context.spanId).toEqual(root.context.spanId);
 		expect(found.status).toEqual(SpanStatus.Ok);
@@ -109,7 +110,7 @@ describe("EntityStorageTracingConnector", () => {
 			logicalOperator: LogicalOperator.And
 		});
 		expect(byStatus.entities).toHaveLength(1);
-		expect((byStatus.entities[0] as ISpan).name).toEqual("other");
+		expect(byStatus.entities[0].name).toEqual("other");
 	});
 
 	test("links are flattened on write and rehydrated on read", async () => {
@@ -133,9 +134,58 @@ describe("EntityStorageTracingConnector", () => {
 			logicalOperator: LogicalOperator.And
 		});
 
-		const found = result.entities[0] as ISpan;
+		const found = result.entities[0];
 		expect(found.links).toHaveLength(1);
 		expect(found.links?.[0].context.traceId).toEqual(linkedTraceId);
 		expect(found.links?.[0].attributes).toEqual({ reason: "batch" });
+	});
+
+	test("endSpan of a never-started span throws NotFoundError", async () => {
+		const connector = new EntityStorageTracingConnector();
+
+		// Mint a span but never persist it (no startSpan/recordSpan).
+		const span = SpanHelper.startSpan("orphan");
+
+		await expect(connector.endSpan(span, SpanStatus.Ok)).rejects.toThrow(NotFoundError);
+
+		const stored = await storage.getStore();
+		expect(stored).toHaveLength(0);
+	});
+
+	test("recordSpan persists an open span then updates the same row on complete", async () => {
+		const connector = new EntityStorageTracingConnector();
+
+		const span = SpanHelper.startSpan("recorded", { startTs: 1000 });
+		await connector.recordSpan(span);
+
+		let stored = await storage.getStore();
+		expect(stored).toHaveLength(1);
+		expect(stored[0].status).toEqual(SpanStatus.Unset);
+		expect(stored[0].endTs).toBeUndefined();
+
+		SpanHelper.endSpan(span, SpanStatus.Ok, 1200);
+		await connector.recordSpan(span);
+
+		stored = await storage.getStore();
+		expect(stored).toHaveLength(1);
+		expect(stored[0].status).toEqual(SpanStatus.Ok);
+		expect(stored[0].durationMs).toEqual(200);
+	});
+
+	test("endSpan is idempotent across a double end", async () => {
+		const connector = new EntityStorageTracingConnector();
+
+		const span = await connector.startSpan("dbl", { startTs: 1000 });
+		await connector.endSpan(span, SpanStatus.Ok);
+		const firstEndTs = span.endTs;
+		const firstDuration = span.durationMs;
+
+		await connector.endSpan(span, SpanStatus.Ok);
+
+		expect(span.endTs).toEqual(firstEndTs);
+		expect(span.durationMs).toEqual(firstDuration);
+
+		const stored = await storage.getStore();
+		expect(stored).toHaveLength(1);
 	});
 });

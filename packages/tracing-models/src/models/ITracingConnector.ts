@@ -27,7 +27,22 @@ export interface ITracingConnector extends IComponent {
 	endSpan(span: ISpan, status?: SpanStatus): Promise<void>;
 
 	/**
+	 * Record a pre-built span verbatim, persisting it as-is (upsert) without minting a new
+	 * context or finalizing it; the span may be open or completed. This is the fan-out primitive
+	 * used by connectors such as `MultiTracingConnector` to replicate a centrally-minted span to
+	 * several backends. Implementations that cannot persist an externally-supplied span may omit it.
+	 * @param span The span to record.
+	 * @returns A promise that resolves when the span has been recorded.
+	 */
+	recordSpan?(span: ISpan): Promise<void>;
+
+	/**
 	 * Query the spans.
+	 *
+	 * Condition and sort property names are the flat, stored names — `traceId`, `spanId`,
+	 * `parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` — not the
+	 * `context.*`-nested paths on `ISpan` (a condition on `context.traceId` would match nothing).
+	 * Connectors must honour these canonical property names.
 	 * @param conditions The conditions to match for the entities.
 	 * @param sortProperties The optional sort order.
 	 * @param cursor The cursor to request the next chunk of entities.

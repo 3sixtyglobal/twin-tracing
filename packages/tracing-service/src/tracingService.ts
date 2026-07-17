@@ -29,6 +29,13 @@ export class TracingService implements ITracingComponent {
 	public static readonly CLASS_NAME: string = nameof<TracingService>();
 
 	/**
+	 * The maximum number of pages `getTrace` will request before stopping. A safety bound that
+	 * prevents an unexpectedly large trace or a non-terminating connector cursor from looping
+	 * unbounded; with the default page size this still covers very large traces.
+	 */
+	public static readonly MAX_GET_TRACE_PAGES: number = 1000;
+
+	/**
 	 * Tracing connector used by the service.
 	 * @internal
 	 */
@@ -177,7 +184,9 @@ export class TracingService implements ITracingComponent {
 	}
 
 	/**
-	 * Get all the spans belonging to a trace, ordered by their start time.
+	 * Get all the spans belonging to a trace, ordered by their start time. The whole trace is paged
+	 * into memory; paging is bounded by {@link TracingService.MAX_GET_TRACE_PAGES} as a safeguard
+	 * against a pathologically large trace or a non-terminating cursor.
 	 * @param traceId The id of the trace to retrieve.
 	 * @returns The spans belonging to the trace, ordered by their start time ascending.
 	 */
@@ -186,6 +195,7 @@ export class TracingService implements ITracingComponent {
 
 		const spans: ISpan[] = [];
 		let cursor: string | undefined;
+		let pages = 0;
 
 		do {
 			const result = await this.query(
@@ -199,7 +209,8 @@ export class TracingService implements ITracingComponent {
 			);
 			spans.push(...result.entities);
 			cursor = result.cursor;
-		} while (Is.stringValue(cursor));
+			pages++;
+		} while (Is.stringValue(cursor) && pages < TracingService.MAX_GET_TRACE_PAGES);
 
 		return spans.sort((a, b) => a.startTs - b.startTs);
 	}

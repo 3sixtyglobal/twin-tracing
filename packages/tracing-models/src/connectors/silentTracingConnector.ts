@@ -54,6 +54,15 @@ export class SilentTracingConnector implements ITracingConnector {
 	}
 
 	/**
+	 * Record a pre-built span to the connector.
+	 * @param span The span to record.
+	 * @returns A promise that resolves immediately without persisting the span.
+	 */
+	public async recordSpan(span: ISpan): Promise<void> {
+		Guards.object<ISpan>(SilentTracingConnector.CLASS_NAME, nameof(span), span);
+	}
+
+	/**
 	 * Query the spans.
 	 * @param conditions The conditions to match for the entities.
 	 * @param sortProperties The optional sort order.

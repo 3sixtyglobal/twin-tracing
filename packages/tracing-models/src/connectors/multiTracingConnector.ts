@@ -56,18 +56,28 @@ export class MultiTracingConnector implements ITracingConnector {
 	}
 
 	/**
-	 * Start a new span.
+	 * Start a new span. The context is minted centrally and the open span is recorded on every
+	 * child connector, so each backend sees the same span from the moment it starts.
 	 * @param name The name of the span.
 	 * @param options The options for the span.
 	 * @returns The started span, including its minted context.
 	 */
 	public async startSpan(name: string, options?: ISpanOptions): Promise<ISpan> {
 		Guards.stringValue(MultiTracingConnector.CLASS_NAME, nameof(name), name);
-		return SpanHelper.startSpan(name, options);
+
+		const span = SpanHelper.startSpan(name, options);
+
+		await Promise.allSettled(
+			this._tracingConnectors.map(async tracingConnector => tracingConnector.recordSpan?.(span))
+		);
+
+		return span;
 	}
 
 	/**
-	 * End a span, finalizing its status and duration and persisting it to all child connectors.
+	 * End a span, finalizing its status and duration and recording the completed span on all child
+	 * connectors. Children are updated via `recordSpan` (not `endSpan`) so the centrally-minted
+	 * span is replicated rather than re-finalized per child.
 	 * @param span The span to end.
 	 * @param status The status to set on the span, defaults to ok.
 	 * @returns A promise that resolves when all child connectors have settled for this span.
@@ -78,9 +88,7 @@ export class MultiTracingConnector implements ITracingConnector {
 		SpanHelper.endSpan(span, status);
 
 		await Promise.allSettled(
-			this._tracingConnectors.map(async tracingConnector =>
-				tracingConnector.endSpan(span, span.status)
-			)
+			this._tracingConnectors.map(async tracingConnector => tracingConnector.recordSpan?.(span))
 		);
 	}
 

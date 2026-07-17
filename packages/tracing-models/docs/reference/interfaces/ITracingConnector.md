@@ -64,11 +64,41 @@ A promise that resolves when the span has been ended.
 
 ***
 
+### recordSpan()? {#recordspan}
+
+> `optional` **recordSpan**(`span`): `Promise`\<`void`\>
+
+Record a pre-built span verbatim, persisting it as-is (upsert) without minting a new
+context or finalizing it; the span may be open or completed. This is the fan-out primitive
+used by connectors such as `MultiTracingConnector` to replicate a centrally-minted span to
+several backends. Implementations that cannot persist an externally-supplied span may omit it.
+
+#### Parameters
+
+##### span
+
+[`ISpan`](ISpan.md)
+
+The span to record.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves when the span has been recorded.
+
+***
+
 ### query()? {#query}
 
 > `optional` **query**(`conditions?`, `sortProperties?`, `cursor?`, `limit?`): `Promise`\<\{ `entities`: [`ISpan`](ISpan.md)[]; `cursor?`: `string`; \}\>
 
 Query the spans.
+
+Condition and sort property names are the flat, stored names — `traceId`, `spanId`,
+`parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` — not the
+`context.*`-nested paths on `ISpan` (a condition on `context.traceId` would match nothing).
+Connectors must honour these canonical property names.
 
 #### Parameters
 
