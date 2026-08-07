@@ -16,6 +16,14 @@ This package provides an entity-storage-backed tracing connector for durable spa
 - [Examples](../packages/tracing-connector-entity-storage/docs/examples.md)
 - [Changelog](../packages/tracing-connector-entity-storage/docs/changelog.md)
 
+## tracing-connector-opentelemetry
+
+This package provides an OpenTelemetry tracing connector which exports completed spans to an OTLP compatible receiver such as the OpenTelemetry Collector, Grafana Alloy or Tempo.
+
+- [README](../packages/tracing-connector-opentelemetry/README.md)
+- [Examples](../packages/tracing-connector-opentelemetry/docs/examples.md)
+- [Changelog](../packages/tracing-connector-opentelemetry/docs/changelog.md)
+
 ## tracing-service
 
 This package exposes tracing operations through service routes and API contracts for server-side integration. It implements the tracing component contract and resolves a tracing connector through the factory pattern.

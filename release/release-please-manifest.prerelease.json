@@ -1,6 +1,7 @@
 {
 	"packages/tracing-models": "0.0.1-next.1",
 	"packages/tracing-connector-entity-storage": "0.0.1-next.1",
+	"packages/tracing-connector-opentelemetry": "0.0.1-next.1",
 	"packages/tracing-service": "0.0.1-next.1",
 	"packages/tracing-rest-client": "0.0.1-next.1"
 }
