@@ -38,7 +38,7 @@ sample ratio is outside the range 0 to 1.
 
 ### NAMESPACE {#namespace}
 
-> `readonly` `static` **NAMESPACE**: `string` = `"opentelemetry"`
+> `readonly` `static` **NAMESPACE**: `string` = `"open-telemetry"`
 
 The namespace for the tracing connector.
 
