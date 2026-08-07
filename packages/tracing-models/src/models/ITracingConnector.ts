@@ -39,8 +39,8 @@ export interface ITracingConnector extends IComponent {
 	/**
 	 * Query the spans.
 	 *
-	 * Condition and sort property names are the flat, stored names — `traceId`, `spanId`,
-	 * `parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` — not the
+	 * Condition and sort property names are the flat, stored names - `traceId`, `spanId`,
+	 * `parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` - not the
 	 * `context.*`-nested paths on `ISpan` (a condition on `context.traceId` would match nothing).
 	 * Connectors must honour these canonical property names.
 	 * @param conditions The conditions to match for the entities.

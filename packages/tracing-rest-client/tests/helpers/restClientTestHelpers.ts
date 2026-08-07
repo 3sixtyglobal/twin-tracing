@@ -17,7 +17,7 @@ export function noContentResponse(): object {
 
 /**
  * Minimal 200 OK JSON response accepted by BaseRestClient.
- * @param jsonBody The value returned by response.json() — this becomes response.body in the client.
+ * @param jsonBody The value returned by response.json() - this becomes response.body in the client.
  * @returns A fake 200 JSON response object.
  */
 export function jsonResponse(jsonBody: unknown): object {
