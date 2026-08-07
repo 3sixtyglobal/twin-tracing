@@ -47,7 +47,7 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 	/**
 	 * The namespace for the tracing connector.
 	 */
-	public static readonly NAMESPACE: string = "opentelemetry";
+	public static readonly NAMESPACE: string = "open-telemetry";
 
 	/**
 	 * Runtime name for the class.
