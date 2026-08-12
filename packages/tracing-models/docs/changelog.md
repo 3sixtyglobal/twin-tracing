@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.2-next.1...tracing-models-v0.9.2-next.2) (2026-08-12)
+
+
+### Features
+
+* span context propagation helpers ([#7](https://github.com/iotaledger/twin-tracing/issues/7)) ([b099041](https://github.com/iotaledger/twin-tracing/commit/b099041e1d4e584a195bb1f79866553d62ebb45c))
+
 ## [0.9.2-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.2-next.0...tracing-models-v0.9.2-next.1) (2026-08-07)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.2-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.1...tracing-connector-opentelemetry-v0.9.2-next.2) (2026-08-12)
+
+
+### Features
+
+* linting and dependency update ([a9fe517](https://github.com/iotaledger/twin-tracing/commit/a9fe5172e80055c988caf59331e9553905702f62))
+* linting and dependency update ([db140c9](https://github.com/iotaledger/twin-tracing/commit/db140c99d3ef1fc07ec23d9c6055d62f62419f75))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.1 to 0.9.2-next.2
+
 ## [0.9.2-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.0...tracing-connector-opentelemetry-v0.9.2-next.1) (2026-08-07)
 
 
