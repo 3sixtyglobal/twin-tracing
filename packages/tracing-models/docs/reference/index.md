@@ -5,6 +5,8 @@
 - [MultiTracingConnector](classes/MultiTracingConnector.md)
 - [SilentTracingConnector](classes/SilentTracingConnector.md)
 - [SpanHelper](classes/SpanHelper.md)
+- [TraceparentHelper](classes/TraceparentHelper.md)
+- [TracingHelper](classes/TracingHelper.md)
 
 ## Interfaces
 
@@ -28,9 +30,11 @@
 
 - [SpanKind](type-aliases/SpanKind.md)
 - [SpanStatus](type-aliases/SpanStatus.md)
+- [TracingContextIdKeys](type-aliases/TracingContextIdKeys.md)
 
 ## Variables
 
 - [TracingConnectorFactory](variables/TracingConnectorFactory.md)
 - [SpanKind](variables/SpanKind.md)
 - [SpanStatus](variables/SpanStatus.md)
+- [TracingContextIdKeys](variables/TracingContextIdKeys.md)
