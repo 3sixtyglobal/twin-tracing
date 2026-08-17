@@ -39,3 +39,11 @@ This package provides a client for interacting with tracing service endpoints fr
 - [README](../packages/tracing-rest-client/README.md)
 - [Examples](../packages/tracing-rest-client/docs/examples.md)
 - [Changelog](../packages/tracing-rest-client/docs/changelog.md)
+
+## tracing-processors
+
+This package provides the processors which trace the HTTP boundary. A route processor records a span for each inbound request, continuing the trace from the `traceparent` header, and a REST client processor records a span for each outbound request, sending the `traceparent` header so the service being called continues the same trace.
+
+- [README](../packages/tracing-processors/README.md)
+- [Examples](../packages/tracing-processors/docs/examples.md)
+- [Changelog](../packages/tracing-processors/docs/changelog.md)

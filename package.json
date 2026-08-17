@@ -59,7 +59,8 @@
 		"packages/tracing-connector-entity-storage",
 		"packages/tracing-connector-opentelemetry",
 		"packages/tracing-service",
-		"packages/tracing-rest-client"
+		"packages/tracing-rest-client",
+		"packages/tracing-processors"
 	],
 	"type": "module",
 	"bugs": {

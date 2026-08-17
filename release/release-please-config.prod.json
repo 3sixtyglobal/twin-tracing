@@ -27,6 +27,10 @@
 		"packages/tracing-rest-client": {
 			"package-name": "tracing-rest-client",
 			"changelog-path": "docs/changelog.md"
+		},
+		"packages/tracing-processors": {
+			"package-name": "tracing-processors",
+			"changelog-path": "docs/changelog.md"
 		}
 	},
 	"plugins": [
@@ -39,7 +43,8 @@
 				"tracing-connector-entity-storage",
 				"tracing-connector-opentelemetry",
 				"tracing-service",
-				"tracing-rest-client"
+				"tracing-rest-client",
+				"tracing-processors"
 			]
 		}
 	]

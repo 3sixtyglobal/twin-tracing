@@ -3,5 +3,6 @@
 	"packages/tracing-connector-entity-storage": "0.9.1",
 	"packages/tracing-connector-opentelemetry": "0.9.1",
 	"packages/tracing-service": "0.9.1",
-	"packages/tracing-rest-client": "0.9.1"
+	"packages/tracing-rest-client": "0.9.1",
+	"packages/tracing-processors": "0.9.1"
 }
