@@ -10,3 +10,11 @@ Options for the TracingRestClientProcessor constructor.
 
 The type for the tracing component, when absent no spans are created and no trace header is
 sent.
+
+***
+
+### config? {#config}
+
+> `optional` **config?**: [`ITracingRestClientProcessorConfig`](ITracingRestClientProcessorConfig.md)
+
+Configuration for the processor.

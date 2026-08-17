@@ -1,7 +1,6 @@
 # Class: TracingRestClientProcessor
 
-Records a span for each outbound REST request and carries the trace to the service being called
-by way of the traceparent header.
+Records a span for each outbound REST request and carries the trace via traceparent header.
 
 ## Implements
 

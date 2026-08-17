@@ -7,6 +7,7 @@
 
 ## Interfaces
 
+- [ITracingRestClientProcessorConfig](interfaces/ITracingRestClientProcessorConfig.md)
 - [ITracingRestClientProcessorConstructorOptions](interfaces/ITracingRestClientProcessorConstructorOptions.md)
 - [ITracingRouteProcessorConfig](interfaces/ITracingRouteProcessorConfig.md)
 - [ITracingRouteProcessorConstructorOptions](interfaces/ITracingRouteProcessorConstructorOptions.md)
