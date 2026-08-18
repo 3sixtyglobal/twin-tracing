@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.2-next.2...tracing-connector-entity-storage-v0.9.2-next.3) (2026-08-17)
+
+
+### Miscellaneous Chores
+
+* **tracing-connector-entity-storage:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.2 to 0.9.2-next.3
+
 ## [0.9.2-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.2-next.1...tracing-connector-entity-storage-v0.9.2-next.2) (2026-08-12)
 
 

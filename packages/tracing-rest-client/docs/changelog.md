@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-rest-client-v0.9.2-next.2...tracing-rest-client-v0.9.2-next.3) (2026-08-17)
+
+
+### Features
+
+* tracing processors ([#9](https://github.com/iotaledger/twin-tracing/issues/9)) ([e5f5d16](https://github.com/iotaledger/twin-tracing/commit/e5f5d1616992440d067830965372d32fc34a939d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.2 to 0.9.2-next.3
+
 ## [0.9.2-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-rest-client-v0.9.2-next.1...tracing-rest-client-v0.9.2-next.2) (2026-08-12)
 
 
