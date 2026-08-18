@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/tracing-processors",
-	"version": "0.9.2-next.3",
+	"version": "0.9.2-next.4",
 	"description": "Processors which record spans for inbound and outbound REST requests.",
 	"repository": {
 		"type": "git",
@@ -33,7 +33,7 @@
 		"@twin.org/core": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/tracing-models": "0.9.2-next.3",
+		"@twin.org/tracing-models": "0.9.2-next.4",
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {

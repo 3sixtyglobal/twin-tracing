@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.4](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.3...tracing-connector-opentelemetry-v0.9.2-next.4) (2026-08-18)
+
+
+### Miscellaneous Chores
+
+* **tracing-connector-opentelemetry:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.3 to 0.9.2-next.4
+
 ## [0.9.2-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.2...tracing-connector-opentelemetry-v0.9.2-next.3) (2026-08-17)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.4](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.2-next.3...tracing-connector-entity-storage-v0.9.2-next.4) (2026-08-18)
+
+
+### Features
+
+* rename SpanEntity to Span ([5dcca6c](https://github.com/iotaledger/twin-tracing/commit/5dcca6cdb7d24eb047eb9334bd0691b6069df82b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.3 to 0.9.2-next.4
+
 ## [0.9.2-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.2-next.2...tracing-connector-entity-storage-v0.9.2-next.3) (2026-08-17)
 
 
