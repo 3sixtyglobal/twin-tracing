@@ -1,6 +1,7 @@
 {
 	"error": {
 		"tracingRouteProcessor": {
+			"startSpanFailed": "The span for the request could not be started",
 			"endSpanFailed": "The span for the request could not be ended"
 		}
 	}
