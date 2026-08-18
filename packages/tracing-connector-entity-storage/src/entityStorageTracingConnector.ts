@@ -14,7 +14,7 @@ import {
 	type ITracingConnector,
 	type SpanStatus
 } from "@twin.org/tracing-models";
-import { SpanEntity } from "./entities/spanEntity.js";
+import { Span } from "./entities/span.js";
 import type { SpanLink } from "./entities/spanLink.js";
 import type { IEntityStorageTracingConnectorConstructorOptions } from "./models/IEntityStorageTracingConnectorConstructorOptions.js";
 
@@ -36,7 +36,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * The entity storage for the spans.
 	 * @internal
 	 */
-	private readonly _spanStorage: IEntityStorageConnector<SpanEntity>;
+	private readonly _spanStorage: IEntityStorageConnector<Span>;
 
 	/**
 	 * Create a new instance of EntityStorageTracingConnector.
@@ -150,7 +150,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 		 */
 		cursor?: string;
 	}> {
-		const finalConditions: EntityCondition<SpanEntity> = {
+		const finalConditions: EntityCondition<Span> = {
 			conditions: [],
 			logicalOperator: LogicalOperator.And
 		};
@@ -179,8 +179,8 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * @returns The span entity.
 	 * @internal
 	 */
-	private spanToEntity(span: ISpan): SpanEntity {
-		const entity = new SpanEntity();
+	private spanToEntity(span: ISpan): Span {
+		const entity = new Span();
 		entity.spanId = span.context.spanId;
 		entity.traceId = span.context.traceId;
 		entity.parentSpanId = span.parentSpanId;
@@ -210,7 +210,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * @returns The span.
 	 * @internal
 	 */
-	private entityToSpan(entity: Partial<SpanEntity>): ISpan {
+	private entityToSpan(entity: Partial<Span>): ISpan {
 		const span: ISpan = {
 			name: entity.name as string,
 			kind: entity.kind as ISpan["kind"],

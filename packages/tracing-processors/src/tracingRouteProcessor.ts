@@ -113,15 +113,25 @@ export class TracingRouteProcessor implements IBaseRouteProcessor {
 			Coerce.string(request.headers?.[TraceparentHelper.HEADER_NAME])
 		);
 
-		const span = await this._tracing.startSpan(this.spanName(request, route), {
-			kind: SpanKind.Server,
-			parentContext,
-			attributes: this.requestAttributes(request, route)
-		});
+		try {
+			const span = await this._tracing.startSpan(this.spanName(request, route), {
+				kind: SpanKind.Server,
+				parentContext,
+				attributes: this.requestAttributes(request, route)
+			});
 
-		processorState[TracingRouteProcessor._STATE_KEY] = span;
+			processorState[TracingRouteProcessor._STATE_KEY] = span;
 
-		Object.assign(contextIds, TracingHelper.spanContextToContextIds(span.context));
+			Object.assign(contextIds, TracingHelper.spanContextToContextIds(span.context));
+		} catch (err) {
+			await this._logging?.log({
+				level: "error",
+				source: TracingRouteProcessor.CLASS_NAME,
+				ts: Date.now(),
+				message: "startSpanFailed",
+				error: BaseError.fromError(err)
+			});
+		}
 	}
 
 	/**

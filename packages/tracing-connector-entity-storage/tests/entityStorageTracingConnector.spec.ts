@@ -6,20 +6,20 @@ import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof } from "@twin.org/nameof";
 import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
-import type { SpanEntity } from "../src/entities/spanEntity.js";
+import type { Span } from "../src/entities/span.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";
 import { initSchema } from "../src/schema.js";
 
 describe("EntityStorageTracingConnector", () => {
-	let storage: MemoryEntityStorageConnector<SpanEntity>;
+	let storage: MemoryEntityStorageConnector<Span>;
 
 	beforeAll(() => {
 		initSchema();
 	});
 
 	beforeEach(() => {
-		storage = new MemoryEntityStorageConnector<SpanEntity>({
-			entitySchema: nameof<SpanEntity>(),
+		storage = new MemoryEntityStorageConnector<Span>({
+			entitySchema: nameof<Span>(),
 			config: { storageKey: "span" }
 		});
 		EntityStorageConnectorFactory.register("span", () => storage);
