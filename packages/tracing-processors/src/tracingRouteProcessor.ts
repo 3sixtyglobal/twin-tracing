@@ -99,6 +99,13 @@ export class TracingRouteProcessor implements IBaseRouteProcessor {
 			return;
 		}
 
+		// Don't want to run tracing on routes without auth as we have no
+		// tenancy context to record the span against, and it will just create noise in the traces.
+		// this is usually endpoints like /health, /metrics, etc. that are not part of the business logic of the service.
+		if (route?.skipAuth ?? false) {
+			return;
+		}
+
 		if (Is.stringValue(route?.path) && this._excludePaths.includes(route.path)) {
 			return;
 		}

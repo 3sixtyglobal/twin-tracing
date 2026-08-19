@@ -10,4 +10,10 @@ export interface IEntityStorageTracingConnectorConstructorOptions {
 	 * @default span
 	 */
 	spanStorageConnectorType?: string;
+
+	/**
+	 * The type of the platform component to use for per-tenant execution.
+	 * @default platform
+	 */
+	platformComponentType?: string;
 }

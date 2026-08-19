@@ -18,6 +18,7 @@ import {
 	SimpleSpanProcessor,
 	TraceIdRatioBasedSampler,
 	type ReadableSpan,
+	type SpanExporter,
 	type SpanProcessor,
 	type TimedEvent
 } from "@opentelemetry/sdk-trace";
@@ -101,10 +102,17 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 	private _processors: SpanProcessor[];
 
 	/**
-	 * The resource describing this service, built in start().
+	 * Base resource built from config in start(), merged under per-tenant attributes.
 	 * @internal
 	 */
-	private _resource?: Resource;
+	private _baseResource?: Resource;
+
+	/**
+	 * Per-tenant/node resource cache, keyed by "nodeId/tenantId".
+	 * Entries are created on demand the first time a span is exported for each pair.
+	 * @internal
+	 */
+	private readonly _resources: { [key: string]: Resource };
 
 	/**
 	 * True between start() and stop().
@@ -121,6 +129,7 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 	constructor(options?: IOpenTelemetryTracingConnectorConstructorOptions) {
 		this._config = options?.config ?? {};
 		this._processors = [];
+		this._resources = {};
 		this._started = false;
 		this._scope = {
 			name: this._config.tracerName ?? "twin-tracing",
@@ -173,7 +182,7 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 			return;
 		}
 
-		this._resource = Is.empty(this._config.resourceAttributes)
+		this._baseResource = Is.empty(this._config.resourceAttributes)
 			? defaultResource()
 			: defaultResource().merge(resourceFromAttributes(this._config.resourceAttributes));
 
@@ -200,7 +209,10 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 		if (this._started) {
 			await Promise.all(this._processors.map(async processor => processor.shutdown()));
 			this._processors = [];
-			this._resource = undefined;
+			for (const key of Object.keys(this._resources)) {
+				delete this._resources[key];
+			}
+			this._baseResource = undefined;
 			this._started = false;
 
 			const nodeLogging = ComponentFactory.getIfExists<ILoggingComponent>(nodeLoggingComponentType);
@@ -235,6 +247,10 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 	public async endSpan(span: ISpan, status?: SpanStatus): Promise<void> {
 		Guards.object<ISpan>(OpenTelemetryTracingConnector.CLASS_NAME, nameof(span), span);
 
+		if (Is.integer(span.endTs)) {
+			return;
+		}
+
 		SpanHelper.endSpan(span, status);
 
 		this.exportSpan(span, (await ContextIdStore.getContextIds()) ?? {});
@@ -266,18 +282,22 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 		const processors: SpanProcessor[] = [];
 
 		for (const [, config] of Object.entries(this._config.exporters ?? {})) {
-			Guards.stringValue(
-				OpenTelemetryTracingConnector.CLASS_NAME,
-				nameof(config.endpoint),
-				config.endpoint
-			);
-
-			const exporter = new OTLPTraceExporter({
-				url: config.endpoint,
-				headers: config.headers,
-				concurrencyLimit: config.concurrencyLimit,
-				timeoutMillis: config.timeoutMs
-			});
+			let exporter: SpanExporter;
+			if (config.exporter) {
+				exporter = config.exporter;
+			} else {
+				Guards.stringValue(
+					OpenTelemetryTracingConnector.CLASS_NAME,
+					nameof(config.endpoint),
+					config.endpoint
+				);
+				exporter = new OTLPTraceExporter({
+					url: config.endpoint,
+					headers: config.headers,
+					concurrencyLimit: config.concurrencyLimit,
+					timeoutMillis: config.timeoutMs
+				});
+			}
 
 			if (config.processor === OpenTelemetryProcessorTypes.Simple) {
 				processors.push(new SimpleSpanProcessor({ exporter }));
@@ -389,12 +409,49 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 			events,
 			duration: millisToHrTime(span.durationMs ?? Math.max(0, endTs - span.startTs)),
 			ended: true,
-			resource: this._resource as Resource,
+			resource: this.getOrCreateResource(contextIds),
 			instrumentationScope: this._scope,
 			droppedAttributesCount: 0,
 			droppedEventsCount: 0,
 			droppedLinksCount: 0
 		};
+	}
+
+	/**
+	 * Return or create the Resource for the given tenant/node pair.
+	 * Resources are keyed by "nodeId/tenantId" and carry OTEL resource attributes
+	 * service.namespace=tenantId and service.instance.id=nodeId when those values
+	 * are present.
+	 * @param contextIds The current execution context IDs.
+	 * @returns The cached or newly created resource.
+	 * @internal
+	 */
+	private getOrCreateResource(contextIds: IContextIds): Resource {
+		const node = contextIds[ContextIdKeys.Node];
+		const tenantId = contextIds[ContextIdKeys.Tenant];
+		const key = `${node ?? ""}/${tenantId ?? ""}`;
+
+		let cached = this._resources[key];
+		if (!Is.undefined(cached)) {
+			return cached;
+		}
+
+		const base = this._baseResource ?? defaultResource();
+		const resourceAttrs: { [id: string]: string } = {};
+		const resourcePrefix = "service";
+		if (Is.stringValue(node)) {
+			resourceAttrs[`${resourcePrefix}.instance.id`] = node;
+		}
+		if (Is.stringValue(tenantId)) {
+			resourceAttrs[`${resourcePrefix}.namespace`] = tenantId;
+		}
+
+		cached =
+			Object.keys(resourceAttrs).length > 0
+				? base.merge(resourceFromAttributes(resourceAttrs))
+				: base;
+		this._resources[key] = cached;
+		return cached;
 	}
 
 	/**

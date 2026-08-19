@@ -1,6 +1,8 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Guards, Is, NotFoundError } from "@twin.org/core";
+import type { IPlatformComponent } from "@twin.org/api-models";
+import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
+import { ComponentFactory, Guards, Is, NotFoundError } from "@twin.org/core";
 import { LogicalOperator, type EntityCondition, type SortDirection } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -39,12 +41,21 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	private readonly _spanStorage: IEntityStorageConnector<Span>;
 
 	/**
+	 * Platform component for per-tenant execution when no tenant context is available.
+	 * @internal
+	 */
+	private readonly _platformComponent: IPlatformComponent;
+
+	/**
 	 * Create a new instance of EntityStorageTracingConnector.
 	 * @param options The options for the connector.
 	 */
 	constructor(options?: IEntityStorageTracingConnectorConstructorOptions) {
 		this._spanStorage = EntityStorageConnectorFactory.get(
 			options?.spanStorageConnectorType ?? "span"
+		);
+		this._platformComponent = ComponentFactory.get<IPlatformComponent>(
+			options?.platformComponentType ?? "platform"
 		);
 	}
 
@@ -90,18 +101,31 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			span.context.spanId
 		);
 
-		const existing = await this._spanStorage.get(span.context.spanId);
-		if (Is.empty(existing)) {
-			throw new NotFoundError(
-				EntityStorageTracingConnector.CLASS_NAME,
-				"spanNotFound",
-				span.context.spanId
-			);
+		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		const isTenantMissing =
+			!Is.stringValue(contextIds[ContextIdKeys.Tenant]) && this._platformComponent.isMultiTenant();
+
+		if (!isTenantMissing) {
+			const existing = await this._spanStorage.get(span.context.spanId);
+			if (Is.empty(existing)) {
+				throw new NotFoundError(
+					EntityStorageTracingConnector.CLASS_NAME,
+					"spanNotFound",
+					span.context.spanId
+				);
+			}
 		}
 
 		SpanHelper.endSpan(span, status);
 
-		await this._spanStorage.set(this.spanToEntity(span));
+		const entity = this.spanToEntity(span);
+
+		// If the tenant is missing we need to store across all the tenants
+		if (isTenantMissing) {
+			await this._platformComponent.execute(async () => this._spanStorage.set(entity));
+		} else {
+			await this._spanStorage.set(entity);
+		}
 	}
 
 	/**
@@ -120,7 +144,16 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			span.context.spanId
 		);
 
-		await this._spanStorage.set(this.spanToEntity(span));
+		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		const isTenantMissing =
+			!Is.stringValue(contextIds[ContextIdKeys.Tenant]) && this._platformComponent.isMultiTenant();
+
+		const entity = this.spanToEntity(span);
+		if (isTenantMissing) {
+			await this._platformComponent.execute(async () => this._spanStorage.set(entity));
+		} else {
+			await this._spanStorage.set(entity);
+		}
 	}
 
 	/**
