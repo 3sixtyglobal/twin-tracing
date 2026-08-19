@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.5...tracing-connector-opentelemetry-v0.9.2-next.6) (2026-08-19)
+
+
+### Features
+
+* tenant aware entity storage ([#17](https://github.com/iotaledger/twin-tracing/issues/17)) ([ae11c56](https://github.com/iotaledger/twin-tracing/commit/ae11c56edf472bc1842997600238c2309ef7147d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.2-next.5 to 0.9.2-next.6
+
 ## [0.9.2-next.5](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.4...tracing-connector-opentelemetry-v0.9.2-next.5) (2026-08-18)
 
 

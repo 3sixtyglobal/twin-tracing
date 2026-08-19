@@ -1,8 +1,8 @@
 {
-	"packages/tracing-models": "0.9.2-next.5",
-	"packages/tracing-connector-entity-storage": "0.9.2-next.5",
-	"packages/tracing-connector-opentelemetry": "0.9.2-next.5",
-	"packages/tracing-service": "0.9.2-next.5",
-	"packages/tracing-rest-client": "0.9.2-next.5",
-	"packages/tracing-processors": "0.9.2-next.5"
+	"packages/tracing-models": "0.9.2-next.6",
+	"packages/tracing-connector-entity-storage": "0.9.2-next.6",
+	"packages/tracing-connector-opentelemetry": "0.9.2-next.6",
+	"packages/tracing-service": "0.9.2-next.6",
+	"packages/tracing-rest-client": "0.9.2-next.6",
+	"packages/tracing-processors": "0.9.2-next.6"
 }
