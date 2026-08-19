@@ -4,12 +4,21 @@ Configuration for a span exporter, sending spans as OTLP over HTTP with a protob
 
 ## Properties
 
-### endpoint {#endpoint}
+### endpoint? {#endpoint}
 
-> **endpoint**: `string`
+> `optional` **endpoint?**: `string`
 
 The full URL of the OTLP traces endpoint to push spans to, e.g.
-"http://localhost:4318/v1/traces". Required: a missing endpoint is rejected at start().
+"http://localhost:4318/v1/traces". Required when no exporter instance is provided.
+
+***
+
+### exporter? {#exporter}
+
+> `optional` **exporter?**: `SpanExporter`
+
+A pre-built span exporter instance. When provided, endpoint and its related options are
+ignored. Intended for testing with an in-process exporter such as InMemorySpanExporter.
 
 ***
 

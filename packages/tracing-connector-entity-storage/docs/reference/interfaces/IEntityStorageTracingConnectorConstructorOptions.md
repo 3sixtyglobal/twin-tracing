@@ -15,3 +15,17 @@ The type of the entity storage connector to use for the spans.
 ```ts
 span
 ```
+
+***
+
+### platformComponentType? {#platformcomponenttype}
+
+> `optional` **platformComponentType?**: `string`
+
+The type of the platform component to use for per-tenant execution.
+
+#### Default
+
+```ts
+platform
+```
