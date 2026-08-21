@@ -121,9 +121,9 @@ export class MultiTracingConnector implements ITracingConnector {
 	}> {
 		// See if we can find a connector that supports querying.
 		for (const tracingConnector of this._tracingConnectors) {
-			// eslint-disable-next-line @typescript-eslint/unbound-method
-			if (Is.function(tracingConnector.query)) {
-				return tracingConnector.query(conditions, sortProperties, cursor, limit);
+			const queryBoundMethod = tracingConnector.query?.bind(tracingConnector);
+			if (Is.function(queryBoundMethod)) {
+				return queryBoundMethod(conditions, sortProperties, cursor, limit);
 			}
 		}
 

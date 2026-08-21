@@ -107,7 +107,9 @@ describe("EntityStorageTracingConnector", () => {
 			platformComponent = makePlatformComponent(multiTenant);
 			executeSpy = vi.spyOn(platformComponent, "execute");
 			ComponentFactory.register("platform", () => platformComponent);
-			connector = new EntityStorageTracingConnector();
+			connector = new EntityStorageTracingConnector({
+				config: { batchSize: 0, batchIntervalMs: 0 }
+			});
 		});
 
 		async function runInContext<T>(fn: () => Promise<T>): Promise<T> {
@@ -353,6 +355,91 @@ describe("EntityStorageTracingConnector", () => {
 			});
 
 			expect(result?.entities).toHaveLength(0);
+		});
+	});
+
+	describe("batching", () => {
+		beforeEach(() => {
+			ComponentFactory.register("platform", () => makePlatformComponent(false));
+		});
+
+		test("holds spans in cache until batch size threshold is reached", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 3, batchIntervalMs: 0 }
+			});
+			await connector.startSpan("one");
+			await connector.startSpan("two");
+
+			expect(await storage.getStore()).toHaveLength(0);
+
+			await connector.startSpan("three");
+
+			expect(await storage.getStore()).toHaveLength(3);
+		});
+
+		test("flush writes all cached spans to storage", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			const span = await connector.startSpan("buffered");
+			expect(await storage.getStore()).toHaveLength(0);
+
+			await connector.flush();
+
+			expect(await storage.getStore()).toHaveLength(1);
+			expect((await storage.getStore())[0].spanId).toEqual(span.context.spanId);
+		});
+
+		test("endSpan finds span in cache when start has not yet been flushed", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			const span = await connector.startSpan("in-flight");
+			expect(await storage.getStore()).toHaveLength(0);
+
+			await connector.endSpan(span, SpanStatus.Ok);
+			await connector.flush();
+
+			const stored = await storage.getStore();
+			expect(stored).toHaveLength(1);
+			expect(stored[0].status).toEqual(SpanStatus.Ok);
+		});
+
+		test("stop flushes remaining cached spans", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			await connector.start();
+			await connector.startSpan("pending");
+			expect(await storage.getStore()).toHaveLength(0);
+
+			await connector.stop();
+
+			expect(await storage.getStore()).toHaveLength(1);
+		});
+
+		test("query flushes cache before reading storage", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			const span = await connector.startSpan("buffered");
+			expect(await storage.getStore()).toHaveLength(0);
+
+			const result = await connector.query();
+
+			expect(result.entities).toHaveLength(1);
+			expect(result.entities[0].context.spanId).toEqual(span.context.spanId);
+		});
+
+		test("size-based flush groups spans by context into a single setBatch call", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 2, batchIntervalMs: 0 }
+			});
+			await connector.startSpan("a");
+			await connector.startSpan("b");
+
+			const stored = await storage.getStore();
+			expect(stored).toHaveLength(2);
 		});
 	});
 

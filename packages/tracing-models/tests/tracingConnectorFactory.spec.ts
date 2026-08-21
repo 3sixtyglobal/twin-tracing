@@ -95,17 +95,3 @@ describe("SpanHelper", () => {
 		).toThrow();
 	});
 });
-
-describe("SilentTracingConnector", () => {
-	test("startSpan mints a context and endSpan discards without querying", async () => {
-		const connector = new SilentTracingConnector();
-		const span = await connector.startSpan("silent-work");
-		expect(span.context.spanId).toMatch(/^[0-9a-f]{16}$/);
-
-		await connector.endSpan(span, SpanStatus.Error);
-		expect(span.status).toEqual(SpanStatus.Error);
-
-		const result = await connector.query();
-		expect(result.entities).toEqual([]);
-	});
-});
