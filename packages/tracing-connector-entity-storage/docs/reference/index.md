@@ -9,6 +9,8 @@
 
 ## Interfaces
 
+- [IBatchEntry](interfaces/IBatchEntry.md)
+- [IEntityStorageTracingConnectorConfig](interfaces/IEntityStorageTracingConnectorConfig.md)
 - [IEntityStorageTracingConnectorConstructorOptions](interfaces/IEntityStorageTracingConnectorConstructorOptions.md)
 
 ## Functions

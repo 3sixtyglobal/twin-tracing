@@ -29,3 +29,11 @@ The type of the platform component to use for per-tenant execution.
 ```ts
 platform
 ```
+
+***
+
+### config? {#config}
+
+> `optional` **config?**: [`IEntityStorageTracingConnectorConfig`](IEntityStorageTracingConnectorConfig.md)
+
+The configuration for the entity storage tracing connector.
