@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.7](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.2-next.6...tracing-models-v0.9.2-next.7) (2026-08-21)
+
+
+### Features
+
+* batching ([#20](https://github.com/iotaledger/twin-tracing/issues/20)) ([1640e9f](https://github.com/iotaledger/twin-tracing/commit/1640e9f23282b513009cfcd6dbae4e518206a888))
+
 ## [0.9.2-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.2-next.5...tracing-models-v0.9.2-next.6) (2026-08-19)
 
 
