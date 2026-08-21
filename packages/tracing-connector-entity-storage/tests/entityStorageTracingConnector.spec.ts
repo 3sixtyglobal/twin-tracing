@@ -69,7 +69,7 @@ describe("EntityStorageTracingConnector", () => {
 			events: s.events,
 			links: s.links?.map((l: SpanLink) => ({
 				context: { traceId: l.traceId, spanId: l.spanId, traceFlags: l.traceFlags ?? 0 },
-				...(l.attributes ? { attributes: l.attributes } : {})
+				attributes: l.attributes
 			}))
 		}));
 	}

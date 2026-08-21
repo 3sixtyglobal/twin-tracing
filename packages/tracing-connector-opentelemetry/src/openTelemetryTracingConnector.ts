@@ -457,31 +457,33 @@ export class OpenTelemetryTracingConnector implements ITracingConnector {
 	/**
 	 * Convert loosely typed attributes into OpenTelemetry attributes. Primitives and uniform
 	 * primitive arrays are forwarded as-is, anything else is serialised.
-	 * @param attributes The attributes to convert.
+	 * @param customData The attributes to convert.
 	 * @returns The OpenTelemetry attributes.
 	 * @internal
 	 */
-	private toAttributes(attributes?: { [key: string]: unknown }): Attributes {
-		const converted: Attributes = {};
-
-		if (Is.empty(attributes)) {
-			return converted;
+	private toAttributes(customData?: { [key: string]: unknown }): Attributes {
+		if (Is.empty(customData)) {
+			return {};
 		}
-
-		for (const [key, value] of Object.entries(attributes)) {
-			if (Is.string(value) || Is.number(value) || Is.boolean(value)) {
-				converted[key] = value;
-			} else if (
-				Is.arrayValue(value) &&
-				(Is.string(value[0]) || Is.number(value[0]) || Is.boolean(value[0])) &&
-				value.every(element => typeof element === typeof value[0])
-			) {
-				converted[key] = value as string[] | number[] | boolean[];
-			} else if (!Is.undefined(value)) {
-				converted[key] = JSON.stringify(value);
+		const attributes: Attributes = {};
+		for (const [key, val] of Object.entries(customData)) {
+			if (Is.string(val) || Is.number(val) || Is.boolean(val)) {
+				attributes[key] = val;
+			} else if (Is.arrayValue(val)) {
+				if (Is.string(val[0]) && val.every(el => Is.string(el))) {
+					attributes[key] = val;
+				} else if (Is.number(val[0]) && val.every(el => Is.number(el))) {
+					attributes[key] = val;
+				} else if (Is.boolean(val[0]) && val.every(el => Is.boolean(el))) {
+					attributes[key] = val;
+				} else {
+					attributes[key] = JSON.stringify(val);
+				}
+			} else if (!Is.undefined(val)) {
+				attributes[key] = JSON.stringify(val);
 			}
 		}
 
-		return converted;
+		return attributes;
 	}
 }
