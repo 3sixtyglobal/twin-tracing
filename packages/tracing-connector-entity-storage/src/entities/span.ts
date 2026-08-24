@@ -9,7 +9,7 @@ import type { SpanLink } from "./spanLink.js";
  * Class defining a span held in entity storage.
  */
 @entity()
-export class SpanEntity {
+export class Span {
 	/**
 	 * The id of the span, used as the primary key.
 	 */

@@ -38,19 +38,35 @@ The maximum value of the trace flags, which is a single byte bitfield.
 
 ***
 
+### TRACE\_ID\_BYTES {#trace_id_bytes}
+
+> `readonly` `static` **TRACE\_ID\_BYTES**: `number` = `16`
+
+The number of bytes in a W3C trace id.
+
+***
+
+### SPAN\_ID\_BYTES {#span_id_bytes}
+
+> `readonly` `static` **SPAN\_ID\_BYTES**: `number` = `8`
+
+The number of bytes in a W3C span id.
+
+***
+
 ### TRACE\_ID\_LENGTH {#trace_id_length}
 
-> `readonly` `static` **TRACE\_ID\_LENGTH**: `number` = `32`
+> `readonly` `static` **TRACE\_ID\_LENGTH**: `number`
 
-The number of hex characters in a W3C trace id (16 bytes).
+The number of hex characters in a W3C trace id.
 
 ***
 
 ### SPAN\_ID\_LENGTH {#span_id_length}
 
-> `readonly` `static` **SPAN\_ID\_LENGTH**: `number` = `16`
+> `readonly` `static` **SPAN\_ID\_LENGTH**: `number`
 
-The number of hex characters in a W3C span id (8 bytes).
+The number of hex characters in a W3C span id.
 
 ## Methods
 

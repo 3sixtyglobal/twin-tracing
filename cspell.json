@@ -22,8 +22,11 @@
 		"abbrev",
 		"autorelease",
 		"bitfield",
+		"hotfixes",
+		"Millis",
 		"nameof",
 		"openapi",
+		"otlp",
 		"Stiftung",
 		"traceparent",
 		"tracestate"

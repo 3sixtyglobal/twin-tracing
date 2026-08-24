@@ -130,7 +130,25 @@ const jsRules = {
 	'no-prototype-builtins': 'error',
 	'no-regex-spaces': 'error',
 	'no-restricted-globals': 'error',
-	'no-restricted-imports': 'error',
+	'no-restricted-imports': [
+		'error',
+		{
+			patterns: [
+				{
+					group: [
+						'@twin.org/**/index.js',
+						'./index.js',
+						'./**/index.js',
+						'../index.js',
+						'../**/index.js',
+						'!../dist/es/index.js',
+						'!**/dist/es/index.js'
+					],
+					message: 'Import from a concrete module file instead of a barrel file.'
+				}
+			]
+		}
+	],
 	'no-restricted-properties': 'error',
 	'no-return-assign': 'error',
 	'no-script-url': 'error',
@@ -236,6 +254,10 @@ const tsRestrictedSyntaxCommon = [
 			'new Error is disallowed as it is not specific enough, and bypasses the i18n formatting'
 	},
 	{
+		selector: "NewExpression[callee.name='RangeError']",
+		message: 'new RangeError is disallowed; use Guards and Validation from @twin.org/core instead'
+	},
+	{
 		selector: "MemberExpression[object.name='process'][property.name='env']",
 		message:
 			'Direct access to process.env is not allowed. Use environment variable helpers or configuration instead.'
@@ -282,6 +304,34 @@ const tsRestrictedSyntax = [
 	{
 		selector: 'MethodDefinition[static=true] ThisExpression',
 		message: 'Do not use "this" in static methods'
+	},
+	{
+		selector: 'VariableDeclarator[definite=true]',
+		message:
+			'Definite assignment assertions (let x!: T) are disallowed. Restructure the code so TypeScript can infer definite assignment, or initialise to a safe default.'
+	},
+	{
+		selector:
+			":matches(BinaryExpression[operator='==='], BinaryExpression[operator='!=='], BinaryExpression[operator='=='], BinaryExpression[operator='!=']) > UnaryExpression[operator='typeof']",
+		message: 'Avoid runtime typeof comparisons. Use the @twin.org/core Is.* methods instead.'
+	},
+	{
+		selector:
+			':matches(FunctionDeclaration, ArrowFunctionExpression, FunctionExpression, TSDeclareFunction, TSMethodSignature, TSCallSignatureDeclaration, TSConstructSignatureDeclaration) > Identifier.params > TSTypeAnnotation > TSObjectKeyword',
+		message:
+			'Do not use `object` as a parameter type. Use a specific interface, type alias, or generic constraint instead.'
+	},
+	{
+		selector:
+			'ObjectExpression > SpreadElement > ConditionalExpression[consequent.type="ObjectExpression"][consequent.properties.length=0]',
+		message:
+			'Avoid spreading a conditional where one branch is an empty object to omit properties. Use a property with a conditional value instead: { prop: condition ? value : undefined }.'
+	},
+	{
+		selector:
+			'ObjectExpression > SpreadElement > ConditionalExpression[alternate.type="ObjectExpression"][alternate.properties.length=0]',
+		message:
+			'Avoid spreading a conditional where one branch is an empty object to omit properties. Use a property with a conditional value instead: { prop: condition ? value : undefined }.'
 	}
 ];
 
@@ -444,6 +494,20 @@ const importRules = {
 		{
 			groups: ['builtin', 'external', 'internal', ['sibling', 'parent'], 'index', 'unknown'],
 			alphabetize: { order: 'asc', caseInsensitive: true }
+		}
+	],
+	'import/no-extraneous-dependencies': [
+		'error',
+		{
+			devDependencies: [
+				'**/tests/**/*.ts',
+				'**/tests/**/*.js',
+				'**/scripts/**/*.mjs',
+				'**/*.config.js',
+				'**/*.config.cjs',
+				'**/*.config.mjs',
+				'**/*.config.ts'
+			]
 		}
 	]
 };
@@ -729,6 +793,13 @@ const config = [
 		}
 	},
 
+	// Bin entry files can import package dist entrypoints.
+	{
+		files: ['**/bin/index.js'],
+		rules: {
+			'no-restricted-imports': 'off'
+		}
+	},
 	// Test files
 	{
 		files: ['**/tests/**/*.ts'],

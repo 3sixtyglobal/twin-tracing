@@ -1,6 +1,17 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Guards, Is, NotFoundError } from "@twin.org/core";
+import type { IPlatformComponent } from "@twin.org/api-models";
+import { ContextIdKeys, ContextIdStore, type IContextIds } from "@twin.org/context";
+import {
+	Coerce,
+	ComponentFactory,
+	Guards,
+	Is,
+	JsonHelper,
+	Mutex,
+	NotFoundError,
+	RandomHelper
+} from "@twin.org/core";
 import { LogicalOperator, type EntityCondition, type SortDirection } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -14,8 +25,9 @@ import {
 	type ITracingConnector,
 	type SpanStatus
 } from "@twin.org/tracing-models";
-import { SpanEntity } from "./entities/spanEntity.js";
+import { Span } from "./entities/span.js";
 import type { SpanLink } from "./entities/spanLink.js";
+import type { IBatchEntry } from "./models/IBatchEntry.js";
 import type { IEntityStorageTracingConnectorConstructorOptions } from "./models/IEntityStorageTracingConnectorConstructorOptions.js";
 
 /**
@@ -33,18 +45,110 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	public static readonly CLASS_NAME: string = nameof<EntityStorageTracingConnector>();
 
 	/**
+	 * Default number of spans to accumulate before flushing.
+	 */
+	public static readonly DEFAULT_BATCH_SIZE: number = 10;
+
+	/**
+	 * Default interval in milliseconds between automatic flushes.
+	 */
+	public static readonly DEFAULT_BATCH_INTERVAL_MS: number = 5000;
+
+	/**
+	 * Default maximum number of spans to hold in the in-memory cache.
+	 */
+	public static readonly DEFAULT_MAX_CACHE_SIZE: number = 1000;
+
+	/**
 	 * The entity storage for the spans.
 	 * @internal
 	 */
-	private readonly _spanStorage: IEntityStorageConnector<SpanEntity>;
+	private readonly _spanStorage: IEntityStorageConnector<Span>;
+
+	/**
+	 * Platform component for per-tenant execution when no tenant context is available.
+	 * @internal
+	 */
+	private readonly _platformComponent: IPlatformComponent;
+
+	/**
+	 * Flush when the cache reaches this size; undefined or <= 1 disables size-based flushing.
+	 * @internal
+	 */
+	private readonly _batchSize: number | undefined;
+
+	/**
+	 * Flush every this many milliseconds; undefined or <= 0 disables timer-based flushing.
+	 * @internal
+	 */
+	private readonly _batchIntervalMs: number | undefined;
+
+	/**
+	 * Spans waiting to be written to storage.
+	 * @internal
+	 */
+	private readonly _batchCache: IBatchEntry[];
+
+	/**
+	 * Maximum spans to keep after a failed flush re-queue; 0 means unlimited.
+	 * @internal
+	 */
+	private readonly _maxCacheSize: number;
+
+	/**
+	 * Timeout in milliseconds passed to Mutex.lock calls.
+	 * @internal
+	 */
+	private readonly _mutexTimeoutMs?: number;
+
+	/**
+	 * Unique key used to serialise concurrent flush calls via Mutex.
+	 * @internal
+	 */
+	private readonly _mutexKey: string;
+
+	/**
+	 * Handle for the interval timer, present only while the connector is running.
+	 * @internal
+	 */
+	private _batchTimer?: ReturnType<typeof setTimeout>;
+
+	/**
+	 * Is the connector running.
+	 * @internal
+	 */
+	private _started: boolean;
 
 	/**
 	 * Create a new instance of EntityStorageTracingConnector.
 	 * @param options The options for the connector.
 	 */
 	constructor(options?: IEntityStorageTracingConnectorConstructorOptions) {
+		const cfgBatchSize =
+			Coerce.integer(options?.config?.batchSize) ??
+			EntityStorageTracingConnector.DEFAULT_BATCH_SIZE;
+		this._batchSize = cfgBatchSize > 1 ? cfgBatchSize : undefined;
+
+		const cfgIntervalMs =
+			Coerce.integer(options?.config?.batchIntervalMs) ??
+			EntityStorageTracingConnector.DEFAULT_BATCH_INTERVAL_MS;
+		this._batchIntervalMs = cfgIntervalMs > 0 ? cfgIntervalMs : undefined;
+
+		const cfgMaxCacheSize =
+			Coerce.integer(options?.config?.maxCacheSize) ??
+			EntityStorageTracingConnector.DEFAULT_MAX_CACHE_SIZE;
+		this._maxCacheSize = cfgMaxCacheSize > 0 ? cfgMaxCacheSize : 0;
+
+		this._mutexTimeoutMs = Coerce.integer(options?.config?.mutexTimeoutMs);
+		this._mutexKey = RandomHelper.generateUuidV7("compact");
+		this._started = false;
+		this._batchCache = [];
+
 		this._spanStorage = EntityStorageConnectorFactory.get(
 			options?.spanStorageConnectorType ?? "span"
+		);
+		this._platformComponent = ComponentFactory.get<IPlatformComponent>(
+			options?.platformComponentType ?? "platform"
 		);
 	}
 
@@ -54,6 +158,29 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 */
 	public className(): string {
 		return EntityStorageTracingConnector.CLASS_NAME;
+	}
+
+	/**
+	 * Start the connector; sets up the interval timer when batchIntervalMs is configured.
+	 * @returns A promise that resolves when the connector is ready to accept spans.
+	 */
+	public async start(): Promise<void> {
+		if (!this._started) {
+			this._started = true;
+			this.startTimer();
+		}
+	}
+
+	/**
+	 * Stop the connector; flushes any remaining cached spans and clears the timer.
+	 * @returns A promise that resolves when the final flush completes and the timer is cleared.
+	 */
+	public async stop(): Promise<void> {
+		if (this._started) {
+			this._started = false;
+			this.stopTimer();
+		}
+		await this.flush();
 	}
 
 	/**
@@ -79,7 +206,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * @param span The span to end.
 	 * @param status The status to set on the span, defaults to ok.
 	 * @returns A promise that resolves when the span has been ended.
-	 * @throws NotFoundError if no span with the given id has been persisted.
+	 * @throws NotFoundError if no span with the given id has been persisted or cached.
 	 */
 	public async endSpan(span: ISpan, status?: SpanStatus): Promise<void> {
 		Guards.object<ISpan>(EntityStorageTracingConnector.CLASS_NAME, nameof(span), span);
@@ -90,18 +217,29 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			span.context.spanId
 		);
 
-		const existing = await this._spanStorage.get(span.context.spanId);
-		if (Is.empty(existing)) {
-			throw new NotFoundError(
-				EntityStorageTracingConnector.CLASS_NAME,
-				"spanNotFound",
-				span.context.spanId
-			);
+		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		const isTenantMissing =
+			!Is.stringValue(contextIds[ContextIdKeys.Tenant]) && this._platformComponent.isMultiTenant();
+
+		if (!isTenantMissing) {
+			const inCache = this._batchCache.some(e => e.entity.spanId === span.context.spanId);
+			if (!inCache) {
+				const existing = await this._spanStorage.get(span.context.spanId);
+				if (Is.empty(existing)) {
+					throw new NotFoundError(
+						EntityStorageTracingConnector.CLASS_NAME,
+						"spanNotFound",
+						span.context.spanId
+					);
+				}
+			}
 		}
 
 		SpanHelper.endSpan(span, status);
 
-		await this._spanStorage.set(this.spanToEntity(span));
+		const entity = this.spanToEntity(span);
+
+		await this.writeOrBatch(entity, contextIds, isTenantMissing);
 	}
 
 	/**
@@ -120,11 +258,18 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			span.context.spanId
 		);
 
-		await this._spanStorage.set(this.spanToEntity(span));
+		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		const isTenantMissing =
+			!Is.stringValue(contextIds[ContextIdKeys.Tenant]) && this._platformComponent.isMultiTenant();
+
+		const entity = this.spanToEntity(span);
+
+		await this.writeOrBatch(entity, contextIds, isTenantMissing);
 	}
 
 	/**
 	 * Query the spans.
+	 * Any pending batched spans are flushed before the query executes so results are always current.
 	 * @param conditions The conditions to match for the entities.
 	 * @param sortProperties The optional sort order.
 	 * @param cursor The cursor to request the next chunk of entities.
@@ -150,7 +295,9 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 		 */
 		cursor?: string;
 	}> {
-		const finalConditions: EntityCondition<SpanEntity> = {
+		await this.flush();
+
+		const finalConditions: EntityCondition<Span> = {
 			conditions: [],
 			logicalOperator: LogicalOperator.And
 		};
@@ -174,13 +321,144 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	}
 
 	/**
+	 * Write all cached spans to storage and clear the cache.
+	 * Spans sharing the same tenant context are grouped into a single setBatch call.
+	 * If the mutex cannot be acquired the call returns without writing.
+	 * On a storage write failure the spans are returned to the head of the cache for the next attempt.
+	 * @returns A promise that resolves when all cached spans have been written to storage.
+	 */
+	public async flush(): Promise<void> {
+		this.stopTimer();
+
+		if (this._batchCache.length === 0) {
+			this.startTimer();
+			return;
+		}
+
+		const locked = await Mutex.lock(this._mutexKey, {
+			throwOnTimeout: true,
+			timeoutMs: this._mutexTimeoutMs
+		});
+		if (!locked) {
+			this.startTimer();
+			return;
+		}
+
+		let entries: IBatchEntry[] = [];
+		try {
+			entries = this._batchCache.splice(0);
+
+			const perTenantEntities: Span[] = [];
+			const contextGroups = new Map<string, { contextIds: IContextIds; entities: Span[] }>();
+
+			for (const entry of entries) {
+				if (entry.perTenant) {
+					perTenantEntities.push(entry.entity);
+				} else {
+					const key = JsonHelper.canonicalize(entry.contextIds);
+					let group = contextGroups.get(key);
+					if (Is.empty(group)) {
+						group = { contextIds: entry.contextIds, entities: [] };
+						contextGroups.set(key, group);
+					}
+					group.entities.push(entry.entity);
+				}
+			}
+
+			if (perTenantEntities.length > 0) {
+				await this._platformComponent.execute(async () =>
+					this._spanStorage.setBatch(perTenantEntities)
+				);
+			}
+
+			for (const group of contextGroups.values()) {
+				await ContextIdStore.run(group.contextIds, async () =>
+					this._spanStorage.setBatch(group.entities)
+				);
+			}
+		} catch {
+			this._batchCache.unshift(...entries);
+			if (this._maxCacheSize > 0 && this._batchCache.length > this._maxCacheSize) {
+				this._batchCache.splice(0, this._batchCache.length - this._maxCacheSize);
+			}
+		} finally {
+			Mutex.unlock(this._mutexKey);
+		}
+
+		this.startTimer();
+	}
+
+	/**
+	 * Write a span entity immediately or add it to the batch cache.
+	 * @param entity The span entity to write or queue.
+	 * @param contextIds The context IDs captured at call time.
+	 * @param perTenant True when no tenant context is available and the write must fan out.
+	 * @internal
+	 */
+	private async writeOrBatch(
+		entity: Span,
+		contextIds: IContextIds,
+		perTenant: boolean
+	): Promise<void> {
+		if (Is.empty(this._batchSize) && Is.empty(this._batchIntervalMs)) {
+			if (perTenant) {
+				await this._platformComponent.execute(async () => this._spanStorage.set(entity));
+			} else {
+				await this._spanStorage.set(entity);
+			}
+			return;
+		}
+
+		let shouldFlush = false;
+		const locked = await Mutex.lock(this._mutexKey, {
+			throwOnTimeout: true,
+			timeoutMs: this._mutexTimeoutMs
+		});
+		if (locked) {
+			try {
+				this._batchCache.push({ entity, contextIds, perTenant });
+				shouldFlush = !Is.empty(this._batchSize) && this._batchCache.length >= this._batchSize;
+			} finally {
+				Mutex.unlock(this._mutexKey);
+			}
+		}
+
+		if (shouldFlush) {
+			await this.flush();
+		}
+	}
+
+	/**
+	 * Start the interval timer if batchIntervalMs is configured and the connector is running.
+	 * @internal
+	 */
+	private startTimer(): void {
+		if (!Is.empty(this._batchIntervalMs) && Is.empty(this._batchTimer) && this._started) {
+			this._batchTimer = globalThis.setTimeout(async () => {
+				await this.flush();
+			}, this._batchIntervalMs);
+		}
+	}
+
+	/**
+	 * Stop the interval timer if it is running.
+	 * @internal
+	 */
+	private stopTimer(): void {
+		if (!Is.empty(this._batchTimer)) {
+			globalThis.clearTimeout(this._batchTimer);
+			this._batchTimer = undefined;
+		}
+	}
+
+	/**
 	 * Map a span to its entity storage representation.
 	 * @param span The span to map.
 	 * @returns The span entity.
 	 * @internal
 	 */
-	private spanToEntity(span: ISpan): SpanEntity {
-		const entity = new SpanEntity();
+	private spanToEntity(span: ISpan): Span {
+		const entity = new Span();
 		entity.spanId = span.context.spanId;
 		entity.traceId = span.context.traceId;
 		entity.parentSpanId = span.parentSpanId;
@@ -210,7 +488,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * @returns The span.
 	 * @internal
 	 */
-	private entityToSpan(entity: Partial<SpanEntity>): ISpan {
+	private entityToSpan(entity: Partial<Span>): ISpan {
 		const span: ISpan = {
 			name: entity.name as string,
 			kind: entity.kind as ISpan["kind"],

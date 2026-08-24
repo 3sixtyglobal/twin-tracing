@@ -1,0 +1,13 @@
+{
+	"error": {
+		"openTelemetryTracingConnector": {
+			"sampleRatioOutOfRange": "The sample ratio \"{sampleRatio}\" must be between 0 and 1"
+		}
+	},
+	"info": {
+		"openTelemetryTracingConnector": {
+			"connectorStarted": "The connector was started with \"{exporterCount}\" exporter(s)",
+			"connectorStopped": "The connector was stopped"
+		}
+	}
+}

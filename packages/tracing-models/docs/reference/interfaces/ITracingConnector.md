@@ -95,8 +95,8 @@ A promise that resolves when the span has been recorded.
 
 Query the spans.
 
-Condition and sort property names are the flat, stored names — `traceId`, `spanId`,
-`parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` — not the
+Condition and sort property names are the flat, stored names - `traceId`, `spanId`,
+`parentSpanId`, `status`, `kind`, `startTs`, `endTs`, `durationMs`, `name` - not the
 `context.*`-nested paths on `ISpan` (a condition on `context.traceId` would match nothing).
 Connectors must honour these canonical property names.
 

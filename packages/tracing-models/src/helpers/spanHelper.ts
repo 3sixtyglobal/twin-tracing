@@ -28,14 +28,24 @@ export class SpanHelper {
 	public static readonly MAX_TRACE_FLAGS: number = 255;
 
 	/**
-	 * The number of hex characters in a W3C trace id (16 bytes).
+	 * The number of bytes in a W3C trace id.
 	 */
-	public static readonly TRACE_ID_LENGTH: number = 32;
+	public static readonly TRACE_ID_BYTES: number = 16;
 
 	/**
-	 * The number of hex characters in a W3C span id (8 bytes).
+	 * The number of bytes in a W3C span id.
 	 */
-	public static readonly SPAN_ID_LENGTH: number = 16;
+	public static readonly SPAN_ID_BYTES: number = 8;
+
+	/**
+	 * The number of hex characters in a W3C trace id.
+	 */
+	public static readonly TRACE_ID_LENGTH: number = SpanHelper.TRACE_ID_BYTES * 2;
+
+	/**
+	 * The number of hex characters in a W3C span id.
+	 */
+	public static readonly SPAN_ID_LENGTH: number = SpanHelper.SPAN_ID_BYTES * 2;
 
 	/**
 	 * Create a new span context, following the W3C Trace Context id formats.
@@ -73,8 +83,10 @@ export class SpanHelper {
 		}
 
 		return {
-			traceId: parentContext?.traceId ?? Converter.bytesToHex(RandomHelper.generate(16)),
-			spanId: Converter.bytesToHex(RandomHelper.generate(8)),
+			traceId:
+				parentContext?.traceId ??
+				Converter.bytesToHex(RandomHelper.generate(SpanHelper.TRACE_ID_BYTES)),
+			spanId: Converter.bytesToHex(RandomHelper.generate(SpanHelper.SPAN_ID_BYTES)),
 			traceFlags: parentContext?.traceFlags ?? SpanHelper.TRACE_FLAG_SAMPLED
 		};
 	}

@@ -18,12 +18,20 @@
 			"package-name": "tracing-connector-entity-storage",
 			"changelog-path": "docs/changelog.md"
 		},
+		"packages/tracing-connector-opentelemetry": {
+			"package-name": "tracing-connector-opentelemetry",
+			"changelog-path": "docs/changelog.md"
+		},
 		"packages/tracing-service": {
 			"package-name": "tracing-service",
 			"changelog-path": "docs/changelog.md"
 		},
 		"packages/tracing-rest-client": {
 			"package-name": "tracing-rest-client",
+			"changelog-path": "docs/changelog.md"
+		},
+		"packages/tracing-processors": {
+			"package-name": "tracing-processors",
 			"changelog-path": "docs/changelog.md"
 		}
 	},
@@ -35,8 +43,10 @@
 			"components": [
 				"tracing-models",
 				"tracing-connector-entity-storage",
+				"tracing-connector-opentelemetry",
 				"tracing-service",
-				"tracing-rest-client"
+				"tracing-rest-client",
+				"tracing-processors"
 			]
 		}
 	]

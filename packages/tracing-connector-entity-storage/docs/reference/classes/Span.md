@@ -1,4 +1,4 @@
-# Class: SpanEntity
+# Class: Span
 
 Class defining a span held in entity storage.
 
@@ -6,11 +6,11 @@ Class defining a span held in entity storage.
 
 ### Constructor
 
-> **new SpanEntity**(): `SpanEntity`
+> **new Span**(): `Span`
 
 #### Returns
 
-`SpanEntity`
+`Span`
 
 ## Properties
 
