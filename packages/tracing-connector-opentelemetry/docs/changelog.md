@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2...tracing-connector-opentelemetry-v0.9.2) (2026-08-24)
+
+
+### Features
+
+* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+
 ## [0.9.2-next.7](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.9.2-next.6...tracing-connector-opentelemetry-v0.9.2-next.7) (2026-08-21)
 
 
