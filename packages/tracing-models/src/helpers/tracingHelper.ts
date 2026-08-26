@@ -8,6 +8,7 @@ import type { ISpan } from "../models/ISpan.js";
 import type { ISpanContext } from "../models/ISpanContext.js";
 import type { ISpanOptions } from "../models/ISpanOptions.js";
 import type { ITracingComponent } from "../models/ITracingComponent.js";
+import { SpanAttributes } from "../models/spanAttributes.js";
 import { SpanStatus } from "../models/spanStatus.js";
 import { TracingContextIdKeys } from "../models/tracingContextIdKeys.js";
 
@@ -63,7 +64,7 @@ export class TracingHelper {
 		} catch (err) {
 			span.attributes = {
 				...span.attributes,
-				"exception.message": BaseError.fromError(err).message
+				[SpanAttributes.ExceptionMessage]: BaseError.fromError(err).message
 			};
 
 			await tracingComponent.endSpan(span, SpanStatus.Error);

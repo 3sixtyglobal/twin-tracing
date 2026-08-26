@@ -24,6 +24,14 @@ This package provides an OpenTelemetry tracing connector which exports completed
 - [Examples](../packages/tracing-connector-opentelemetry/docs/examples.md)
 - [Changelog](../packages/tracing-connector-opentelemetry/docs/changelog.md)
 
+## tracing-connector-console
+
+This package provides a tracing connector which writes each completed span to the console. It is intended for development and debugging.
+
+- [README](../packages/tracing-connector-console/README.md)
+- [Examples](../packages/tracing-connector-console/docs/examples.md)
+- [Changelog](../packages/tracing-connector-console/docs/changelog.md)
+
 ## tracing-service
 
 This package exposes tracing operations through service routes and API contracts for server-side integration. It implements the tracing component contract and resolves a tracing connector through the factory pattern.

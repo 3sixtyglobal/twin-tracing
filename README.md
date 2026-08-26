@@ -9,6 +9,7 @@ The model interfaces align to OpenTelemetry span concepts: a trace represents th
 - [tracing-models](packages/tracing-models/README.md) - Defines shared tracing contracts, span shapes, and connector interfaces used across the repository.
 - [tracing-connector-entity-storage](packages/tracing-connector-entity-storage/README.md) - Persists spans to entity storage for durable retention, querying, and downstream processing.
 - [tracing-connector-opentelemetry](packages/tracing-connector-opentelemetry/README.md) - Exports spans to an OTLP compatible endpoint using OpenTelemetry for consumption by observability backends.
+- [tracing-connector-console](packages/tracing-connector-console/README.md) - Writes completed spans to the console.
 - [tracing-service](packages/tracing-service/README.md) - Exposes tracing operations through service routes and API contracts for server-side integration.
 - [tracing-rest-client](packages/tracing-rest-client/README.md) - Provides a client for interacting with tracing service endpoints from applications and services.
 - [tracing-processors](packages/tracing-processors/README.md) - Traces the HTTP boundary, recording spans for inbound routes and outbound REST requests and carrying the trace between services.

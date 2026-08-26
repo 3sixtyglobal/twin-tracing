@@ -10,6 +10,7 @@ import {
 	type ITracingComponent
 } from "@twin.org/tracing-models";
 import { HttpStatusCode } from "@twin.org/web";
+import { HttpSpanAttributes } from "./models/httpSpanAttributes.js";
 import type { ITracingRestClientProcessorConstructorOptions } from "./models/ITracingRestClientProcessorConstructorOptions.js";
 
 /**
@@ -70,7 +71,10 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 			`${context.restClientClassName}${context.route.startsWith("/") ? "" : "/"}${context.route}`,
 			{
 				kind: SpanKind.Client,
-				attributes: { "http.method": context.method, "http.route": context.route }
+				attributes: {
+					[HttpSpanAttributes.HttpMethod]: context.method,
+					[HttpSpanAttributes.HttpRoute]: context.route
+				}
 			},
 			async span => {
 				if (!Is.empty(span)) {
@@ -82,7 +86,7 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 				if (!Is.empty(span)) {
 					span.attributes = {
 						...span.attributes,
-						"http.status_code": response.status ?? HttpStatusCode.ok
+						[HttpSpanAttributes.HttpStatusCode]: response.status ?? HttpStatusCode.ok
 					};
 				}
 
