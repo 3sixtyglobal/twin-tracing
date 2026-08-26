@@ -1,1 +1,17 @@
 # Changelog
+
+## [0.9.3-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-console-v0.9.3-next.0...tracing-connector-console-v0.9.3-next.1) (2026-08-26)
+
+
+### Features
+
+* console tracing connector ([#31](https://github.com/iotaledger/twin-tracing/issues/31)) ([9393573](https://github.com/iotaledger/twin-tracing/commit/939357302fe7c900b46d96618615128d8f2f5fa4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.0 to 0.9.3-next.1
+
+## Changelog
