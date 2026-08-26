@@ -11,3 +11,11 @@
 - [ITracingRestClientProcessorConstructorOptions](interfaces/ITracingRestClientProcessorConstructorOptions.md)
 - [ITracingRouteProcessorConfig](interfaces/ITracingRouteProcessorConfig.md)
 - [ITracingRouteProcessorConstructorOptions](interfaces/ITracingRouteProcessorConstructorOptions.md)
+
+## Type Aliases
+
+- [HttpSpanAttributes](type-aliases/HttpSpanAttributes.md)
+
+## Variables
+
+- [HttpSpanAttributes](variables/HttpSpanAttributes.md)
