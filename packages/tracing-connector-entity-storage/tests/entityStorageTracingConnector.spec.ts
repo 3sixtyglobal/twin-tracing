@@ -6,12 +6,14 @@ import { ComponentFactory, NotFoundError } from "@twin.org/core";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
+import type { ILogEntry } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
 import type { ITracingConnector } from "@twin.org/tracing-models";
 import type { Span } from "../src/entities/span.js";
 import type { SpanLink } from "../src/entities/spanLink.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";
+import type { IEntityStorageTracingConnectorConfig } from "../src/models/IEntityStorageTracingConnectorConfig.js";
 import { initSchema } from "../src/schema.js";
 
 // This spec is intentionally kept in sync with all other tracing connector specs.
@@ -440,6 +442,246 @@ describe("EntityStorageTracingConnector", () => {
 
 			const stored = await storage.getStore();
 			expect(stored).toHaveLength(2);
+		});
+	});
+
+	describe("retention", () => {
+		const INTERVAL_MS = 60000;
+		const TWO_HOURS_MS = 7200000;
+
+		let logEntries: ILogEntry[];
+		let consoleErrors: unknown[][];
+		let connectors: EntityStorageTracingConnector[];
+
+		function registerLogging(log: (logEntry: ILogEntry) => Promise<void>): void {
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log,
+				query: async () => ({ entities: [] })
+			}));
+		}
+
+		async function startConnector(
+			config?: IEntityStorageTracingConnectorConfig
+		): Promise<EntityStorageTracingConnector> {
+			const connector = new EntityStorageTracingConnector({
+				config: {
+					batchSize: 0,
+					batchIntervalMs: 0,
+					retainForMs: 0,
+					maxEntries: 0,
+					retentionIntervalMs: INTERVAL_MS,
+					...config
+				}
+			});
+			connectors.push(connector);
+			await connector.start();
+			return connector;
+		}
+
+		async function recordSpanAt(
+			connector: EntityStorageTracingConnector,
+			name: string,
+			startTs: number
+		): Promise<void> {
+			const span = SpanHelper.startSpan(name, { startTs });
+			SpanHelper.endSpan(span, SpanStatus.Ok, startTs + 1);
+			await connector.recordSpan(span);
+		}
+
+		async function tick(): Promise<void> {
+			await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+		}
+
+		async function storedNames(): Promise<string[]> {
+			return (await storage.getStore()).map(span => span.name).sort();
+		}
+
+		beforeEach(() => {
+			consoleErrors = [];
+			vi.spyOn(globalThis.console, "error").mockImplementation((...params: unknown[]) => {
+				consoleErrors.push(params);
+			});
+			ComponentFactory.register("platform", () => makePlatformComponent(false));
+			logEntries = [];
+			registerLogging(async logEntry => {
+				logEntries.push(logEntry);
+			});
+			connectors = [];
+			vi.useFakeTimers();
+		});
+
+		afterEach(async () => {
+			for (const connector of connectors) {
+				await connector.stop();
+			}
+			vi.useRealTimers();
+			vi.restoreAllMocks();
+			ComponentFactory.unregister("logging");
+		});
+
+		test("removes spans older than retainForMs on a retention timer tick", async () => {
+			const connector = await startConnector({ retainForMs: 3600000 });
+			await recordSpanAt(connector, "old-1", Date.now() - TWO_HOURS_MS);
+			await recordSpanAt(connector, "old-2", Date.now() - TWO_HOURS_MS);
+			await recordSpanAt(connector, "recent", Date.now());
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["recent"]);
+		});
+
+		test("keeps only the newest maxEntries spans when the limit is exceeded", async () => {
+			const connector = await startConnector({ maxEntries: 2 });
+			for (let i = 1; i <= 4; i++) {
+				await recordSpanAt(connector, `span-${i}`, i * 1000);
+			}
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["span-3", "span-4"]);
+		});
+
+		test("does not remove spans when the count is within maxEntries", async () => {
+			const connector = await startConnector({ maxEntries: 5 });
+			for (let i = 1; i <= 3; i++) {
+				await recordSpanAt(connector, `span-${i}`, i * 1000);
+			}
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["span-1", "span-2", "span-3"]);
+		});
+
+		test("logs a retention failure rather than swallowing it", async () => {
+			await startConnector({ retainForMs: 3600000 });
+			vi.spyOn(storage, "count").mockRejectedValue(new Error("storage offline"));
+
+			await tick();
+
+			expect(logEntries).toHaveLength(1);
+			expect(logEntries[0].level).toEqual("error");
+			expect(logEntries[0].source).toEqual(EntityStorageTracingConnector.CLASS_NAME);
+			expect(logEntries[0].message).toEqual("retentionFailed");
+			expect(logEntries[0].error?.message).toContain("storage offline");
+		});
+
+		test("logs a failure and keeps the timer running", async () => {
+			let failExecute = true;
+			ComponentFactory.register("platform", () => ({
+				className: () => "MockPlatformComponent",
+				isMultiTenant: () => true,
+				execute: async (method: () => Promise<void>) => {
+					if (failExecute) {
+						throw new Error("tenant list unavailable");
+					}
+					await method();
+				},
+				getLocalOriginContext: async () => undefined
+			}));
+			const connector = await startConnector({ retainForMs: 3600000 });
+
+			await tick();
+
+			expect(logEntries.map(entry => entry.message)).toEqual(["retentionFailed"]);
+			expect(logEntries[0].error?.message).toContain("tenant list unavailable");
+
+			// The timer survived the failure, so the next pass still trims.
+			failExecute = false;
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await tick();
+
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("deletes in pages no larger than retentionBatchSize", async () => {
+			const connector = await startConnector({ retainForMs: 3600000, retentionBatchSize: 2 });
+			const removeBatchSpy = vi.spyOn(storage, "removeBatch");
+			for (let i = 0; i < 5; i++) {
+				await recordSpanAt(connector, `old-${i}`, Date.now() - TWO_HOURS_MS);
+			}
+
+			await tick();
+
+			expect(removeBatchSpy.mock.calls.map(call => call[0].length)).toEqual([2, 2, 1]);
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("spreads a large backlog across passes instead of deleting it in one burst", async () => {
+			const connector = await startConnector({ retainForMs: 3600000, retentionBatchSize: 1 });
+			const backlog = EntityStorageTracingConnector.RETENTION_MAX_BATCHES_PER_PASS + 2;
+			for (let i = 0; i < backlog; i++) {
+				await recordSpanAt(connector, `old-${i}`, Date.now() - TWO_HOURS_MS + i);
+			}
+
+			// One pass deletes at most retentionBatchSize * RETENTION_MAX_BATCHES_PER_PASS spans.
+			await tick();
+			expect(await storedNames()).toHaveLength(2);
+
+			await tick();
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("does not run cleanup when both retention thresholds are disabled", async () => {
+			const connector = await startConnector();
+			const countSpy = vi.spyOn(storage, "count");
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await tick();
+
+			expect(countSpy).not.toHaveBeenCalled();
+			expect(await storedNames()).toEqual(["old"]);
+		});
+
+		test("stop clears the retention timer so no further cleanup runs", async () => {
+			const connector = await startConnector({ retainForMs: 3600000 });
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await connector.stop();
+			await tick();
+
+			expect(await storedNames()).toEqual(["old"]);
+		});
+
+		test("runs cleanup in each tenant context without crossing tenants", async () => {
+			const partitionedStorage = new MemoryEntityStorageConnector<Span>({
+				entitySchema: nameof<Span>(),
+				partitionContextIds: [ContextIdKeys.Tenant],
+				config: { storageKey: "span-partitioned" }
+			});
+			EntityStorageConnectorFactory.register("span", () => partitionedStorage);
+
+			const tenants = ["tenant-a", "tenant-b"];
+			ComponentFactory.register("platform", () => ({
+				className: () => "MockPlatformComponent",
+				isMultiTenant: () => true,
+				execute: async (method: () => Promise<void>) => {
+					for (const tenant of tenants) {
+						await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, method);
+					}
+				},
+				getLocalOriginContext: async () => undefined
+			}));
+			const connector = await startConnector({ retainForMs: 3600000 });
+
+			for (const tenant of tenants) {
+				await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, async () => {
+					await recordSpanAt(connector, `old-${tenant}`, Date.now() - TWO_HOURS_MS);
+					await recordSpanAt(connector, `recent-${tenant}`, Date.now());
+				});
+			}
+			expect(await partitionedStorage.getStore()).toHaveLength(4);
+
+			await tick();
+
+			expect(logEntries).toEqual([]);
+			for (const tenant of tenants) {
+				const remaining = await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, async () =>
+					partitionedStorage.query(undefined, undefined, undefined, undefined, 100)
+				);
+				expect(remaining.entities.map(entity => entity.name)).toEqual([`recent-${tenant}`]);
+			}
 		});
 	});
 

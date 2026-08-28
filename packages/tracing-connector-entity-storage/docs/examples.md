@@ -57,3 +57,22 @@ const result = await connector.query({
   ]
 });
 ```
+
+## Retention
+
+The connector trims the span table on a timer while it is running, so `start` must be called for
+retention to take effect and `stop` clears the timer. Age-based cleanup runs first, then
+count-based, and both delete the oldest spans in pages of `retentionBatchSize`.
+
+```typescript
+const connector = new EntityStorageTracingConnector({
+  config: {
+    retainForMs: 172800000, // remove spans that started more than 2 days ago, 0 disables
+    maxEntries: 10000, // keep at most this many spans, 0 disables
+    retentionIntervalMs: 300000, // how often the cleanup runs, 0 disables
+    retentionBatchSize: 1000 // spans deleted per removeBatch call
+  }
+});
+
+await connector.start();
+```
