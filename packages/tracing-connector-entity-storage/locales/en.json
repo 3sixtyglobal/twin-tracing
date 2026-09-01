@@ -2,7 +2,8 @@
 	"error": {
 		"entityStorageTracingConnector": {
 			"spanNotFound": "The span could not be found \"{notFoundId}\"",
-			"retentionFailed": "The span retention cleanup failed"
+			"retentionFailed": "The span retention cleanup failed",
+			"flushFailed": "Failed to flush cached spans to storage"
 		}
 	}
 }

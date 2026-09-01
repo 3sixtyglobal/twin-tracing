@@ -4,7 +4,10 @@ import type { IPlatformComponent } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, NotFoundError } from "@twin.org/core";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
+import {
+	MemoryEntityStorageConnector,
+	type IMemoryEntityStorageConnectorConstructorOptions
+} from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import type { ILogEntry } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
@@ -37,6 +40,33 @@ interface StoredSpan {
 		context: { traceId: string; spanId: string; traceFlags: number };
 		attributes?: { [key: string]: unknown };
 	}[];
+}
+
+/**
+ * Memory storage whose setBatch is delayed, holding open the window where flushed entries are
+ * committed to neither the cache nor storage - the same window MySQL write latency opens in
+ * production. Exposes setBatchStarted so tests can deterministically wait until the write is
+ * in flight instead of guessing a delay long enough to land inside the window.
+ */
+class SlowSetBatchMemoryConnector extends MemoryEntityStorageConnector<Span> {
+	public readonly setBatchStarted: Promise<void>;
+
+	private readonly _setBatchStartedResolve: () => void;
+
+	constructor(options: IMemoryEntityStorageConnectorConstructorOptions) {
+		super(options);
+		let resolveSetBatchStarted: () => void = () => {};
+		this.setBatchStarted = new Promise<void>(resolve => {
+			resolveSetBatchStarted = resolve;
+		});
+		this._setBatchStartedResolve = resolveSetBatchStarted;
+	}
+
+	public override async setBatch(entities: Span[]): Promise<void> {
+		this._setBatchStartedResolve();
+		await new Promise(resolve => setTimeout(resolve, 50));
+		return super.setBatch(entities);
+	}
 }
 
 function makePlatformComponent(multiTenant: boolean): IPlatformComponent {
@@ -442,6 +472,109 @@ describe("EntityStorageTracingConnector", () => {
 
 			const stored = await storage.getStore();
 			expect(stored).toHaveLength(2);
+		});
+
+		test("endSpan succeeds for a span whose start is in an in-flight flush write", async () => {
+			const slowStorage = new SlowSetBatchMemoryConnector({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			EntityStorageConnectorFactory.register("span", () => slowStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 1000, batchIntervalMs: 0 }
+			});
+
+			const span = await connector.startSpan("raced");
+			const inFlightFlush = connector.flush();
+			await slowStorage.setBatchStarted;
+
+			await connector.endSpan(span, SpanStatus.Ok);
+
+			await inFlightFlush;
+			await connector.flush();
+
+			const stored = await slowStorage.getStore();
+			expect(stored).toHaveLength(1);
+			expect(stored[0].status).toEqual(SpanStatus.Ok);
+			expect(stored[0].endTs).toBeDefined();
+		});
+
+		test("query reflects spans from an in-flight flush write", async () => {
+			const slowStorage = new SlowSetBatchMemoryConnector({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			EntityStorageConnectorFactory.register("span", () => slowStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 1000, batchIntervalMs: 0 }
+			});
+
+			const span = await connector.startSpan("in-flight-query");
+			const inFlightFlush = connector.flush();
+			await slowStorage.setBatchStarted;
+
+			const result = await connector.query();
+
+			expect(result.entities).toHaveLength(1);
+			expect(result.entities[0].context.spanId).toEqual(span.context.spanId);
+
+			await inFlightFlush;
+		});
+
+		test("logs flushFailed and re-queues the entries when the write fails", async () => {
+			const logEntries: ILogEntry[] = [];
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log: async (entry: ILogEntry) => {
+					logEntries.push(entry);
+				},
+				query: async () => ({ entities: [] })
+			}));
+
+			const failingStorage = new MemoryEntityStorageConnector<Span>({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			vi.spyOn(failingStorage, "setBatch").mockRejectedValueOnce(new Error("storage unavailable"));
+			EntityStorageConnectorFactory.register("span", () => failingStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+
+			await connector.startSpan("will-fail-once");
+			await connector.flush();
+
+			expect(logEntries).toHaveLength(1);
+			expect(logEntries[0].level).toEqual("error");
+			expect(logEntries[0].source).toEqual(EntityStorageTracingConnector.CLASS_NAME);
+			expect(logEntries[0].message).toEqual("flushFailed");
+			expect(logEntries[0].error?.message).toContain("storage unavailable");
+
+			await connector.flush();
+			expect(await failingStorage.getStore()).toHaveLength(1);
+
+			ComponentFactory.unregister("logging");
+		});
+
+		test("does not log when a flush succeeds", async () => {
+			const logEntries: ILogEntry[] = [];
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log: async (entry: ILogEntry) => {
+					logEntries.push(entry);
+				},
+				query: async () => ({ entities: [] })
+			}));
+
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			await connector.startSpan("ok");
+			await connector.flush();
+
+			expect(logEntries).toHaveLength(0);
+
+			ComponentFactory.unregister("logging");
 		});
 	});
 
