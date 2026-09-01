@@ -72,12 +72,19 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	public static readonly DEFAULT_RETENTION_INTERVAL_MS: number = 300000;
 
 	/**
-	 * Default maximum age of a span before it is removed, 2 days.
+	 * Default maximum age of an ended span before it is removed, 2 days.
 	 */
 	public static readonly DEFAULT_RETAIN_FOR_MS: number = 172800000;
 
 	/**
-	 * Default maximum number of spans to keep in storage.
+	 * Default maximum age of an open (never-ended) span before it is presumed abandoned and
+	 * removed, 4 days - twice the ended-span default, since open spans are otherwise fully
+	 * exempt from age/count retention.
+	 */
+	public static readonly DEFAULT_RETAIN_OPEN_FOR_MS: number = 345600000;
+
+	/**
+	 * Default maximum number of ended spans to keep in storage.
 	 */
 	public static readonly DEFAULT_MAX_ENTRIES: number = 10000;
 
@@ -154,14 +161,21 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	private readonly _mutexKey: string;
 
 	/**
-	 * Remove spans older than this many milliseconds.
+	 * Remove ended spans older than this many milliseconds. Never removes an open span.
 	 * Undefined when age-based retention is disabled.
 	 * @internal
 	 */
 	private readonly _retainForMs?: number;
 
 	/**
-	 * Keep at most this many spans in storage.
+	 * Remove open (never-ended) spans older than this many milliseconds, presumed abandoned.
+	 * Undefined when open-span retention is disabled.
+	 * @internal
+	 */
+	private readonly _retainOpenForMs?: number;
+
+	/**
+	 * Keep at most this many ended spans in storage. Never counts or removes an open span.
 	 * Undefined when count-based retention is disabled.
 	 * @internal
 	 */
@@ -222,6 +236,11 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			Coerce.integer(options?.config?.retainForMs) ??
 			EntityStorageTracingConnector.DEFAULT_RETAIN_FOR_MS;
 		this._retainForMs = cfgRetainForMs > 0 ? cfgRetainForMs : undefined;
+
+		const cfgRetainOpenForMs =
+			Coerce.integer(options?.config?.retainOpenForMs) ??
+			EntityStorageTracingConnector.DEFAULT_RETAIN_OPEN_FOR_MS;
+		this._retainOpenForMs = cfgRetainOpenForMs > 0 ? cfgRetainOpenForMs : undefined;
 
 		const cfgMaxEntries =
 			Coerce.integer(options?.config?.maxEntries) ??
@@ -558,19 +577,56 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 		try {
 			await this._platformComponent.execute(async () => {
 				try {
+					// An ended span has a defined endTs; an open (in-progress) span does not. Age-based
+					// and count-based retention below must only ever see ended spans - an open span is
+					// only ever removed by the separate, more generous orphan pass.
+					const endedCondition: EntityCondition<Span> = {
+						property: "endTs",
+						value: undefined,
+						comparison: ComparisonOperator.NotEquals
+					};
+
 					if (!Is.empty(this._retainForMs)) {
 						const ageCondition: EntityCondition<Span> = {
-							property: "startTs",
-							value: Date.now() - this._retainForMs,
-							comparison: ComparisonOperator.LessThan
+							conditions: [
+								{
+									property: "startTs",
+									value: Date.now() - this._retainForMs,
+									comparison: ComparisonOperator.LessThan
+								},
+								endedCondition
+							],
+							logicalOperator: LogicalOperator.And
 						};
 						await this.removeOldestSpans(await this._spanStorage.count(ageCondition), ageCondition);
 					}
 
+					if (!Is.empty(this._retainOpenForMs)) {
+						const orphanCondition: EntityCondition<Span> = {
+							conditions: [
+								{
+									property: "startTs",
+									value: Date.now() - this._retainOpenForMs,
+									comparison: ComparisonOperator.LessThan
+								},
+								{
+									property: "endTs",
+									value: undefined,
+									comparison: ComparisonOperator.Equals
+								}
+							],
+							logicalOperator: LogicalOperator.And
+						};
+						await this.removeOldestSpans(
+							await this._spanStorage.count(orphanCondition),
+							orphanCondition
+						);
+					}
+
 					if (!Is.empty(this._maxEntries)) {
-						const total = await this._spanStorage.count();
+						const total = await this._spanStorage.count(endedCondition);
 						if (total > this._maxEntries) {
-							await this.removeOldestSpans(total - this._maxEntries);
+							await this.removeOldestSpans(total - this._maxEntries, endedCondition);
 						}
 					}
 				} catch (err) {
@@ -645,7 +701,9 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			!Is.empty(this._retentionIntervalMs) &&
 			Is.empty(this._retentionTimer) &&
 			this._started &&
-			(!Is.empty(this._retainForMs) || !Is.empty(this._maxEntries))
+			(!Is.empty(this._retainForMs) ||
+				!Is.empty(this._retainOpenForMs) ||
+				!Is.empty(this._maxEntries))
 		) {
 			this._retentionTimer = globalThis.setTimeout(async () => {
 				await this.runRetention();
