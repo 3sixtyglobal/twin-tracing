@@ -35,25 +35,16 @@ export interface IEntityStorageTracingConnectorConfig {
 	mutexTimeoutMs?: number;
 
 	/**
-	 * Delete ended spans whose start timestamp is older than this many milliseconds. Never
-	 * removes a span that has not been ended - see retainOpenForMs for that.
+	 * Delete spans whose start timestamp is older than this many milliseconds.
+	 * When combined with maxEntries, age-based cleanup runs first.
 	 * Set to 0 to disable age-based retention.
 	 * @default 172800000 (2 days)
 	 */
 	retainForMs?: number;
 
 	/**
-	 * Delete open (never-ended) spans whose start timestamp is older than this many
-	 * milliseconds, presumed abandoned (e.g. a crashed process or a dropped endSpan call).
-	 * Set to 0 to disable retention of abandoned open spans, letting them accumulate forever.
-	 * @default 345600000 (4 days)
-	 */
-	retainOpenForMs?: number;
-
-	/**
-	 * Keep at most this many ended spans. When the stored ended-span count exceeds this limit,
-	 * the oldest ended spans (by start timestamp) are removed first. Never counts or removes a
-	 * span that has not been ended.
+	 * Keep at most this many spans. When the stored count exceeds this limit,
+	 * the oldest spans (by start timestamp) are removed first.
 	 * When combined with retainForMs, age-based cleanup runs first.
 	 * Set to 0 to disable count-based retention.
 	 * @default 10000
@@ -62,7 +53,7 @@ export interface IEntityStorageTracingConnectorConfig {
 
 	/**
 	 * How often the retention cleanup task runs in milliseconds.
-	 * Has no effect when retainForMs, retainOpenForMs, and maxEntries are all 0.
+	 * Has no effect when both retainForMs and maxEntries are 0.
 	 * Set to 0 to disable periodic cleanup.
 	 * @default 300000 (5 minutes)
 	 */
