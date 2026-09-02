@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.9.3-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.3-next.1...tracing-connector-entity-storage-v0.9.3-next.2) (2026-09-02)
+
+
+### Features
+
+* retention for the entity-storage tracing connector ([#35](https://github.com/iotaledger/twin-tracing/issues/35)) ([25ec0f7](https://github.com/iotaledger/twin-tracing/commit/25ec0f7a9dd672f197cfe464a0e583883e242d1f))
+
+
+### Bug Fixes
+
+* prevent endSpan race with in-flight flush writes ([#37](https://github.com/iotaledger/twin-tracing/issues/37)) ([4f6126e](https://github.com/iotaledger/twin-tracing/commit/4f6126e98f9cac9c21afb2008ce9921c56fd0b37))
+* protect still-open spans from retention and reap abandoned ones separately ([29d81b0](https://github.com/iotaledger/twin-tracing/commit/29d81b037cafca005767a93cfba44265acdcba3d))
+* protect still-open spans from retention and reap abandoned ones separately ([#39](https://github.com/iotaledger/twin-tracing/issues/39)) ([345530c](https://github.com/iotaledger/twin-tracing/commit/345530c90735be6122a3821a017861d8dc62e7b3))
+
+
+### Reverts
+
+* back out still-open-spans retention fix, landed on next by mistake ([979fb10](https://github.com/iotaledger/twin-tracing/commit/979fb10f827e32d5aaa3916829d1cd5ce4d1fef0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.1 to 0.9.3-next.2
+
 ## [0.9.3-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.3-next.0...tracing-connector-entity-storage-v0.9.3-next.1) (2026-08-26)
 
 

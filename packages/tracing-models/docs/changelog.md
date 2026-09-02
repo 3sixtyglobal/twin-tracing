@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.3-next.1...tracing-models-v0.9.3-next.2) (2026-09-02)
+
+
+### Miscellaneous Chores
+
+* **tracing-models:** Synchronize repo versions
+
 ## [0.9.3-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-models-v0.9.3-next.0...tracing-models-v0.9.3-next.1) (2026-08-26)
 
 
