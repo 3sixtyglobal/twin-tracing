@@ -32,6 +32,20 @@ platform
 
 ***
 
+### loggingComponentType? {#loggingcomponenttype}
+
+> `optional` **loggingComponentType?**: `string`
+
+The type of the logging component to use for reporting retention failures.
+
+#### Default
+
+```ts
+logging
+```
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`IEntityStorageTracingConnectorConfig`](IEntityStorageTracingConnectorConfig.md)
