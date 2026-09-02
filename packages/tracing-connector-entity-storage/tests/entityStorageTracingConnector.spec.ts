@@ -12,7 +12,7 @@ import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import type { ILogEntry } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
-import type { ITracingConnector } from "@twin.org/tracing-models";
+import type { ISpan, ITracingConnector } from "@twin.org/tracing-models";
 import type { Span } from "../src/entities/span.js";
 import type { SpanLink } from "../src/entities/spanLink.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";
@@ -581,6 +581,7 @@ describe("EntityStorageTracingConnector", () => {
 	describe("retention", () => {
 		const INTERVAL_MS = 60000;
 		const TWO_HOURS_MS = 7200000;
+		const FIVE_DAYS_MS = 432000000;
 
 		let logEntries: ILogEntry[];
 		let consoleErrors: unknown[][];
@@ -620,6 +621,16 @@ describe("EntityStorageTracingConnector", () => {
 			const span = SpanHelper.startSpan(name, { startTs });
 			SpanHelper.endSpan(span, SpanStatus.Ok, startTs + 1);
 			await connector.recordSpan(span);
+		}
+
+		async function recordOpenSpanAt(
+			connector: EntityStorageTracingConnector,
+			name: string,
+			startTs: number
+		): Promise<ISpan> {
+			const span = SpanHelper.startSpan(name, { startTs });
+			await connector.recordSpan(span);
+			return span;
 		}
 
 		async function tick(): Promise<void> {
@@ -756,8 +767,8 @@ describe("EntityStorageTracingConnector", () => {
 			expect(await storedNames()).toEqual([]);
 		});
 
-		test("does not run cleanup when both retention thresholds are disabled", async () => {
-			const connector = await startConnector();
+		test("does not run cleanup when all retention thresholds are disabled", async () => {
+			const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 0 });
 			const countSpy = vi.spyOn(storage, "count");
 			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
 
@@ -815,6 +826,118 @@ describe("EntityStorageTracingConnector", () => {
 				);
 				expect(remaining.entities.map(entity => entity.name)).toEqual([`recent-${tenant}`]);
 			}
+		});
+
+		describe("still-open spans", () => {
+			test("count-based retention does not delete a still-open span", async () => {
+				const connector = await startConnector({ maxEntries: 2 });
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - TWO_HOURS_MS);
+				await recordSpanAt(connector, "ended-1", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				// Pins the full set: the open span survives AND the ended-span cap still trims the
+				// oldest ended entry - a count pass that silently does nothing would also leave
+				// open-oldest present, so toContain alone wouldn't catch that.
+				expect(await storedNames()).toEqual(["ended-2", "ended-3", "open-oldest"]);
+			});
+
+			test("endSpan succeeds for an open span that crossed the count threshold", async () => {
+				const connector = await startConnector({ maxEntries: 2 });
+				const openSpan = await recordOpenSpanAt(
+					connector,
+					"open-in-progress",
+					Date.now() - TWO_HOURS_MS
+				);
+				await recordSpanAt(connector, "ended-1", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				await connector.endSpan(openSpan, SpanStatus.Ok);
+
+				const stored = await getStoredSpan(openSpan.context.spanId);
+				expect(stored?.endTs).toBeDefined();
+				expect(stored?.status).toEqual(SpanStatus.Ok);
+			});
+
+			test("age-based retention keeps an open span older than retainForMs", async () => {
+				const connector = await startConnector({ retainForMs: 3600000 });
+				await recordOpenSpanAt(connector, "open-long-running", Date.now() - TWO_HOURS_MS);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-long-running", "recent-ended"]);
+			});
+
+			test("an open span older than retainOpenForMs is reaped as abandoned", async () => {
+				const connector = await startConnector({ retainForMs: 3600000 });
+				await recordOpenSpanAt(connector, "abandoned", Date.now() - FIVE_DAYS_MS);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["recent-ended"]);
+			});
+
+			test("honors a custom retainOpenForMs instead of the default", async () => {
+				// A 2h-old open span would survive the 4-day default; only a genuinely-applied
+				// custom retainOpenForMs of 1h would reap it, proving the config override is read.
+				const connector = await startConnector({ retainOpenForMs: 3600000 });
+				await recordOpenSpanAt(
+					connector,
+					"abandoned-under-custom-cutoff",
+					Date.now() - TWO_HOURS_MS
+				);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["recent-ended"]);
+			});
+
+			test("keeps recent open spans within maxOpenEntries untouched", async () => {
+				const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 2 });
+				await recordOpenSpanAt(connector, "open-1", Date.now() - 3000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 2000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-1", "open-2"]);
+			});
+
+			test("trims the oldest open spans once maxOpenEntries is exceeded", async () => {
+				const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 2 });
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - 3000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 2000);
+				await recordOpenSpanAt(connector, "open-3", Date.now() - 1000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-2", "open-3"]);
+			});
+
+			test("maxEntries and maxOpenEntries cap their own populations independently", async () => {
+				const connector = await startConnector({
+					retainOpenForMs: 0,
+					maxEntries: 2,
+					maxOpenEntries: 2
+				});
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - 6000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 5000);
+				await recordOpenSpanAt(connector, "open-3", Date.now() - 4000);
+				await recordSpanAt(connector, "ended-oldest", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["ended-2", "ended-3", "open-2", "open-3"]);
+			});
 		});
 	});
 
