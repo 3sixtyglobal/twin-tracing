@@ -162,8 +162,10 @@ export class ConsoleTracingConnector implements ITracingConnector {
 			if (hasMessage) {
 				params.push(this.colorize(message, "red"));
 			}
+			// eslint-disable-next-line no-restricted-syntax
 			globalThis.console.error(...params);
 		} else {
+			// eslint-disable-next-line no-restricted-syntax
 			globalThis.console.log(...params);
 		}
 	}
