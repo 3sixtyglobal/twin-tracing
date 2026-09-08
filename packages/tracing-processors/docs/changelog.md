@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.4](https://github.com/iotaledger/twin-tracing/compare/tracing-processors-v0.9.3-next.3...tracing-processors-v0.9.3-next.4) (2026-09-08)
+
+
+### Miscellaneous Chores
+
+* **tracing-processors:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.3 to 0.9.3-next.4
+
 ## [0.9.3-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-processors-v0.9.3-next.2...tracing-processors-v0.9.3-next.3) (2026-09-08)
 
 
