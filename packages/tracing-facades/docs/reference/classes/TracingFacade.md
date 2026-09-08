@@ -10,6 +10,7 @@ component.
 ## Implements
 
 - `IFacade`
+- `IComponent`
 
 ## Constructors
 
@@ -81,6 +82,24 @@ The name a returned value is matched under, so it can be excluded or have a prop
 selected with the same patterns as a parameter.
 
 ## Methods
+
+### className() {#classname}
+
+> **className**(): `string`
+
+Returns the class name of the component.
+
+#### Returns
+
+`string`
+
+The class name of the component.
+
+#### Implementation of
+
+`IComponent.className`
+
+***
 
 ### wrap() {#wrap}
 
