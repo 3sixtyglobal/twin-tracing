@@ -55,3 +55,11 @@ This package provides the processors which trace the HTTP boundary. A route proc
 - [README](../packages/tracing-processors/README.md)
 - [Examples](../packages/tracing-processors/docs/examples.md)
 - [Changelog](../packages/tracing-processors/docs/changelog.md)
+
+## tracing-facades
+
+This package provides a tracing facade which records a span for each method called on a factory produced component, so a component can be traced without being modified. It builds on the facade support in the component factories.
+
+- [README](../packages/tracing-facades/README.md)
+- [Examples](../packages/tracing-facades/docs/examples.md)
+- [Changelog](../packages/tracing-facades/docs/changelog.md)

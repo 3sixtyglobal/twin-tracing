@@ -61,7 +61,8 @@
 		"packages/tracing-connector-console",
 		"packages/tracing-service",
 		"packages/tracing-rest-client",
-		"packages/tracing-processors"
+		"packages/tracing-processors",
+		"packages/tracing-facades"
 	],
 	"type": "module",
 	"bugs": {

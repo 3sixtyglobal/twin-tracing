@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IRestClientProcessor, IRestClientProcessorContext } from "@twin.org/api-models";
 import { ComponentFactory, Is } from "@twin.org/core";
+import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import {
 	SpanKind,
@@ -29,6 +30,12 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 	private readonly _tracing?: ITracingComponent;
 
 	/**
+	 * The component for logging a tracing failure.
+	 * @internal
+	 */
+	private readonly _logging?: ILoggingComponent;
+
+	/**
 	 * Route templates to skip tracing.
 	 * @internal
 	 */
@@ -40,6 +47,7 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 	 */
 	constructor(options?: ITracingRestClientProcessorConstructorOptions) {
 		this._tracing = ComponentFactory.getIfExists(options?.tracingComponentType);
+		this._logging = ComponentFactory.getIfExists(options?.loggingComponentType);
 		this._excludeRouteTemplates = options?.config?.excludePaths ?? [];
 	}
 
@@ -91,7 +99,8 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 				}
 
 				return response;
-			}
+			},
+			this._logging
 		);
 	}
 }

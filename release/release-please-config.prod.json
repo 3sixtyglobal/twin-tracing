@@ -36,6 +36,10 @@
 		"packages/tracing-processors": {
 			"package-name": "tracing-processors",
 			"changelog-path": "docs/changelog.md"
+		},
+		"packages/tracing-facades": {
+			"package-name": "tracing-processors",
+			"changelog-path": "docs/changelog.md"
 		}
 	},
 	"plugins": [

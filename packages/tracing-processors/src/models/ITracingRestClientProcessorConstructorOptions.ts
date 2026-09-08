@@ -14,6 +14,11 @@ export interface ITracingRestClientProcessorConstructorOptions {
 	tracingComponentType?: string;
 
 	/**
+	 * The type for the logging component, used to report a tracing failure.
+	 */
+	loggingComponentType?: string;
+
+	/**
 	 * Configuration for the processor.
 	 */
 	config?: ITracingRestClientProcessorConfig;
