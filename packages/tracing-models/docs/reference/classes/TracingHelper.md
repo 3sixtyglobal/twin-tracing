@@ -24,7 +24,7 @@ Runtime name for the class.
 
 ### withSpan() {#withspan}
 
-> `static` **withSpan**\<`T`\>(`tracingComponent`, `name`, `options`, `callback`): `Promise`\<`T`\>
+> `static` **withSpan**\<`T`\>(`tracingComponent`, `name`, `options`, `callback`, `loggingComponent?`): `Promise`\<`T`\>
 
 Run an operation inside a span, ending the span however the operation finishes.
 
@@ -62,6 +62,12 @@ The options for the span.
 (`span?`) => `Promise`\<`T`\>
 
 The operation to run.
+
+##### loggingComponent?
+
+`ILoggingComponent`
+
+The optional component to log a tracing failure to.
 
 #### Returns
 
