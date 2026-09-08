@@ -38,7 +38,7 @@
 			"changelog-path": "docs/changelog.md"
 		},
 		"packages/tracing-facades": {
-			"package-name": "tracing-processors",
+			"package-name": "tracing-facades",
 			"changelog-path": "docs/changelog.md"
 		}
 	},
@@ -54,7 +54,8 @@
 				"tracing-connector-console",
 				"tracing-service",
 				"tracing-rest-client",
-				"tracing-processors"
+				"tracing-processors",
+				"tracing-facades"
 			]
 		}
 	]
