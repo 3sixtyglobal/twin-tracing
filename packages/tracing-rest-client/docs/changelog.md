@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-rest-client-v0.9.3-next.2...tracing-rest-client-v0.9.3-next.3) (2026-09-08)
+
+
+### Miscellaneous Chores
+
+* **tracing-rest-client:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.2 to 0.9.3-next.3
+
 ## [0.9.3-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-rest-client-v0.9.3-next.1...tracing-rest-client-v0.9.3-next.2) (2026-09-02)
 
 
