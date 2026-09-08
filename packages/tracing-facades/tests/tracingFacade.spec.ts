@@ -129,6 +129,11 @@ describe("TracingFacade", () => {
 		expect(makeFacade()).toBeDefined();
 	});
 
+	test("reports its class name as a component", () => {
+		// The engine registers a facade through the same initialiser shape as any other component.
+		expect(makeFacade().className()).toEqual("TracingFacade");
+	});
+
 	test("records a span named for the method", async () => {
 		const component = makeFacade().wrap(new TestComponent());
 

@@ -1,6 +1,6 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ComponentFactory, Is, type IFacade } from "@twin.org/core";
+import { ComponentFactory, Is, type IComponent, type IFacade } from "@twin.org/core";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import { TracingHelper, type ITracingComponent } from "@twin.org/tracing-models";
@@ -15,7 +15,7 @@ import { TracingFacadeAttributes } from "./models/tracingFacadeAttributes.js";
  * synchronous method would make it return a promise and break the contract of the wrapped
  * component.
  */
-export class TracingFacade implements IFacade {
+export class TracingFacade implements IFacade, IComponent {
 	/**
 	 * Runtime name for the class.
 	 */
@@ -158,6 +158,14 @@ export class TracingFacade implements IFacade {
 	}
 
 	/**
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
+	 */
+	public className(): string {
+		return TracingFacade.CLASS_NAME;
+	}
+
+	/**
 	 * Wrap the target so its method calls are recorded as spans.
 	 * @param target The component to wrap.
 	 * @returns The wrapped component, or the target itself when there is no tracing component.
@@ -198,7 +206,7 @@ export class TracingFacade implements IFacade {
 			return value;
 		}
 
-		const className = this.className(target);
+		const className = this.targetClassName(target);
 
 		if (this.matchesAny(this._excludeMethods, [className, prop])) {
 			return value;
@@ -420,12 +428,13 @@ export class TracingFacade implements IFacade {
 	}
 
 	/**
-	 * Get the name of the component class, which every IComponent implementation provides.
+	 * Get the name of the class of the component being wrapped, which every IComponent
+	 * implementation provides.
 	 * @param target The component to get the name of.
 	 * @returns The class name, or an empty string when the component does not provide one.
 	 * @internal
 	 */
-	private className(target: { [key: string]: unknown }): string {
+	private targetClassName(target: { [key: string]: unknown }): string {
 		const method = target.className;
 
 		if (Is.function(method)) {
