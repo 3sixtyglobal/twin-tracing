@@ -71,16 +71,28 @@ export class TracingFacade implements IFacade, IComponent {
 	private static readonly _ASYNC_FUNCTION_TAG: string = "[object AsyncFunction]";
 
 	/**
-	 * The component recording the spans, when absent every call passes straight through.
+	 * The type of the component recording the spans.
 	 * @internal
 	 */
-	private readonly _tracingComponent?: ITracingComponent;
+	private readonly _tracingComponentType?: string;
 
 	/**
-	 * The component for logging a tracing failure.
+	 * The component recording the spans, resolved on first use.
 	 * @internal
 	 */
-	private readonly _loggingComponent?: ILoggingComponent;
+	private _tracingComponent?: ITracingComponent;
+
+	/**
+	 * The type of the component for logging a tracing failure.
+	 * @internal
+	 */
+	private readonly _loggingComponentType?: string;
+
+	/**
+	 * The component for logging a tracing failure, resolved on first use.
+	 * @internal
+	 */
+	private _loggingComponent?: ILoggingComponent;
 
 	/**
 	 * Patterns for parameters whose values are never recorded.
@@ -132,8 +144,8 @@ export class TracingFacade implements IFacade, IComponent {
 	 * @param options The options for the facade.
 	 */
 	constructor(options?: ITracingFacadeConstructorOptions) {
-		this._tracingComponent = ComponentFactory.getIfExists(options?.tracingComponentType);
-		this._loggingComponent = ComponentFactory.getIfExists(options?.loggingComponentType);
+		this._tracingComponentType = options?.tracingComponentType;
+		this._loggingComponentType = options?.loggingComponentType;
 		this._excludeParams = (
 			options?.config?.excludeParams ?? TracingFacade.DEFAULT_EXCLUDE_PARAMS
 		).map(pattern => pattern.split("."));
@@ -168,16 +180,24 @@ export class TracingFacade implements IFacade, IComponent {
 	/**
 	 * Wrap the target so its method calls are recorded as spans.
 	 * @param target The component to wrap.
-	 * @returns The wrapped component, or the target itself when there is no tracing component.
+	 * @returns The wrapped component.
 	 */
 	public wrap<T>(target: T): T {
-		if (Is.empty(this._tracingComponent)) {
-			return target;
-		}
-
 		return new Proxy(target as { [key: string]: unknown }, {
 			get: (t, prop, receiver): unknown => this.interceptGet(t, prop, receiver)
 		}) as T;
+	}
+
+	/**
+	 * Get the component recording the spans, resolving it from the factory on first use.
+	 * @returns The component, or undefined when it does not resolve.
+	 * @internal
+	 */
+	private tracingComponent(): ITracingComponent | undefined {
+		this._tracingComponent ??= ComponentFactory.getIfExists(this._tracingComponentType);
+		this._loggingComponent ??= ComponentFactory.getIfExists(this._loggingComponentType);
+
+		return this._tracingComponent;
 	}
 
 	/**
@@ -240,9 +260,15 @@ export class TracingFacade implements IFacade, IComponent {
 		let wrapper = wrappers.get(method);
 
 		if (Is.undefined(wrapper)) {
-			wrapper = async (...args: unknown[]): Promise<unknown> =>
-				TracingHelper.withSpan(
-					this._tracingComponent,
+			wrapper = async (...args: unknown[]): Promise<unknown> => {
+				const tracingComponent = this.tracingComponent();
+
+				if (Is.empty(tracingComponent)) {
+					return method.apply(target, args);
+				}
+
+				return TracingHelper.withSpan(
+					tracingComponent,
 					Is.stringValue(className) ? `method:${className}.${name}` : `method:${name}`,
 					{ attributes: this.callAttributes(className, name, method, args) },
 					async span => {
@@ -266,6 +292,7 @@ export class TracingFacade implements IFacade, IComponent {
 					},
 					this._loggingComponent
 				);
+			};
 
 			wrappers.set(method, wrapper);
 		}

@@ -451,12 +451,28 @@ describe("TracingFacade", () => {
 		ComponentFactory.unregister("failing-tracing");
 	});
 
+	test("resolves the tracing component on a later call when the first call found none", async () => {
+		ComponentFactory.unregister("tracing");
+
+		// The facade is created before the tracing component exists, as the engine does.
+		const component = new TracingFacade({ tracingComponentType: "tracing" }).wrap(
+			new TestComponent()
+		);
+
+		await component.get("abc");
+		expect(ended).toHaveLength(0);
+
+		ComponentFactory.register("tracing", () => new TestTracingComponent());
+		await component.get("abc");
+
+		expect(ended).toHaveLength(1);
+		expect(ended[0].name).toEqual("method:TestComponent.get");
+	});
+
 	test("passes everything through when there is no tracing component", async () => {
 		const facade = new TracingFacade({ tracingComponentType: "not-registered" });
-		const original = new TestComponent();
-		const component = facade.wrap(original);
+		const component = facade.wrap(new TestComponent());
 
-		expect(component).toBe(original);
 		await expect(component.get("abc")).resolves.toEqual("got:abc");
 		expect(ended).toHaveLength(0);
 	});

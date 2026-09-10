@@ -15,14 +15,24 @@ FacadeFactory.register(
   () => new TracingFacade({ tracingComponentType: 'tracing', loggingComponentType: 'logging' })
 );
 
-ComponentFactory.useFacade('tracing');
+// The components the facade itself uses are excluded, since wrapping them would mean recording
+// a span for every span, and logging a failure to log a failure.
+ComponentFactory.useFacade('tracing', [
+  'tracing-service',
+  'tracing-rest-client',
+  'logging-service'
+]);
 ```
 
-Every component the factory produces from that point on records a span named
-`method:<class>.<name>` for each method called on it. With no tracing component registered the target is returned unwrapped,
-so this is safe to activate unconditionally. A tracing connector which fails does not interrupt
-the call it was recording, and the failure is reported to the logging component when one is
-configured.
+Every other component the factory produces from that point on records a span named
+`method:<class>.<name>` for each method called on it.
+
+The exclusions are not optional when the tracing or logging components are registered with the
+factory being activated.
+
+With no tracing component registered the calls pass straight through. A tracing connector which
+fails does not interrupt the call it was recording, and the failure is reported to the logging
+component when one is configured.
 
 ## What is recorded
 
