@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.5](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.4...tracing-facades-v0.9.3-next.5) (2026-09-10)
+
+
+### Features
+
+* resolve facade components lazily ([#49](https://github.com/iotaledger/twin-tracing/issues/49)) ([c618911](https://github.com/iotaledger/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.4 to 0.9.3-next.5
+
 ## [0.9.3-next.4](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.3...tracing-facades-v0.9.3-next.4) (2026-09-08)
 
 
