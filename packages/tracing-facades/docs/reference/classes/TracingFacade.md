@@ -125,7 +125,7 @@ The component to wrap.
 
 `T`
 
-The wrapped component, or the target itself when there is no tracing component.
+The wrapped component.
 
 #### Implementation of
 
