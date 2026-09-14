@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-service-v0.9.3-next.5...tracing-service-v0.9.3-next.6) (2026-09-14)
+
+
+### Miscellaneous Chores
+
+* **tracing-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.5 to 0.9.3-next.6
+
 ## [0.9.3-next.5](https://github.com/iotaledger/twin-tracing/compare/tracing-service-v0.9.3-next.4...tracing-service-v0.9.3-next.5) (2026-09-10)
 
 

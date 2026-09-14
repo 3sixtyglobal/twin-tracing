@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.3-next.5...tracing-connector-entity-storage-v0.9.3-next.6) (2026-09-14)
+
+
+### Bug Fixes
+
+* remove mutex lock ([#54](https://github.com/iotaledger/twin-tracing/issues/54)) ([fa1a486](https://github.com/iotaledger/twin-tracing/commit/fa1a4867a5e5a896c8f36b3143df71b2b8c4379f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.5 to 0.9.3-next.6
+
 ## [0.9.3-next.5](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.9.3-next.4...tracing-connector-entity-storage-v0.9.3-next.5) (2026-09-10)
 
 
