@@ -329,11 +329,10 @@ and a cursor which can be used to request more entities.
 
 Write all cached spans to storage and clear the cache.
 Spans sharing the same tenant context are grouped into a single setBatch call.
-If the mutex cannot be acquired the call returns without writing.
 On a storage write failure the spans are returned to the head of the cache for the next attempt.
 
 #### Returns
 
 `Promise`\<`void`\>
 
-A promise that resolves when all cached spans have been written to storage.
+A promise that resolves when the cached spans have been written to storage.
