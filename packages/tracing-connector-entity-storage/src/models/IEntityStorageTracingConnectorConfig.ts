@@ -30,11 +30,6 @@ export interface IEntityStorageTracingConnectorConfig {
 	maxCacheSize?: number;
 
 	/**
-	 * Maximum number of milliseconds to wait when acquiring a mutex lock before timing out.
-	 */
-	mutexTimeoutMs?: number;
-
-	/**
 	 * Delete ended spans whose start timestamp is older than this many milliseconds. Never
 	 * removes a span that has not been ended - see retainOpenForMs for that.
 	 * Set to 0 to disable age-based retention.

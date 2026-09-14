@@ -406,7 +406,28 @@ describe("EntityStorageTracingConnector", () => {
 
 			await connector.startSpan("three");
 
-			expect(await storage.getStore()).toHaveLength(3);
+			await vi.waitFor(async () => {
+				expect(await storage.getStore()).toHaveLength(3);
+			});
+		});
+
+		test("does not wait for the storage write when the batch fills", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 2, batchIntervalMs: 0 }
+			});
+			const setBatch = storage.setBatch.bind(storage);
+			vi.spyOn(storage, "setBatch").mockImplementation(async entities => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+				await setBatch(entities);
+			});
+
+			await connector.startSpan("one");
+			const start = Date.now();
+			await connector.startSpan("two");
+
+			expect(Date.now() - start).toBeLessThan(100);
+			await connector.stop();
+			expect(await storage.getStore()).toHaveLength(2);
 		});
 
 		test("flush writes all cached spans to storage", async () => {
@@ -470,8 +491,10 @@ describe("EntityStorageTracingConnector", () => {
 			await connector.startSpan("a");
 			await connector.startSpan("b");
 
-			const stored = await storage.getStore();
-			expect(stored).toHaveLength(2);
+			await vi.waitFor(async () => {
+				const stored = await storage.getStore();
+				expect(stored).toHaveLength(2);
+			});
 		});
 
 		test("endSpan succeeds for a span whose start is in an in-flight flush write", async () => {

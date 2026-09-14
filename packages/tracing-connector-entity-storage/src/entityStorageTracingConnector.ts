@@ -9,9 +9,7 @@ import {
 	Guards,
 	Is,
 	JsonHelper,
-	Mutex,
-	NotFoundError,
-	RandomHelper
+	NotFoundError
 } from "@twin.org/core";
 import {
 	ComparisonOperator,
@@ -35,6 +33,7 @@ import {
 import { Span } from "./entities/span.js";
 import type { SpanLink } from "./entities/spanLink.js";
 import type { IBatchEntry } from "./models/IBatchEntry.js";
+
 import type { IEntityStorageTracingConnectorConstructorOptions } from "./models/IEntityStorageTracingConnectorConstructorOptions.js";
 
 /**
@@ -152,16 +151,11 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	private readonly _maxCacheSize: number;
 
 	/**
-	 * Timeout in milliseconds passed to Mutex.lock calls.
+	 * The flush pass in progress, so concurrent flush callers can wait for it without blocking
+	 * span recording.
 	 * @internal
 	 */
-	private readonly _mutexTimeoutMs?: number;
-
-	/**
-	 * Unique key used to serialise concurrent flush calls via Mutex.
-	 * @internal
-	 */
-	private readonly _mutexKey: string;
+	private _activeFlush?: Promise<void>;
 
 	/**
 	 * Remove ended spans older than this many milliseconds. Never removes an open span.
@@ -275,8 +269,6 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 				? cfgRetentionBatchSize
 				: EntityStorageTracingConnector.DEFAULT_RETENTION_BATCH_SIZE;
 
-		this._mutexTimeoutMs = Coerce.integer(options?.config?.mutexTimeoutMs);
-		this._mutexKey = RandomHelper.generateUuidV7("compact");
 		this._started = false;
 		this._batchCache = [];
 		this._inFlightEntries = [];
@@ -467,79 +459,32 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	/**
 	 * Write all cached spans to storage and clear the cache.
 	 * Spans sharing the same tenant context are grouped into a single setBatch call.
-	 * If the mutex cannot be acquired the call returns without writing.
 	 * On a storage write failure the spans are returned to the head of the cache for the next attempt.
-	 * @returns A promise that resolves when all cached spans have been written to storage.
+	 * @returns A promise that resolves when the cached spans have been written to storage.
 	 */
 	public async flush(): Promise<void> {
 		this.stopTimer();
 
-		const locked = await Mutex.lock(this._mutexKey, {
-			throwOnTimeout: true,
-			timeoutMs: this._mutexTimeoutMs
-		});
-		if (!locked) {
+		if (this._activeFlush) {
+			await this._activeFlush;
+		}
+		if (this._batchCache.length === 0) {
 			this.startTimer();
 			return;
 		}
 
-		let entries: IBatchEntry[] = [];
+		const entries = this._batchCache.splice(0);
+		this._inFlightEntries = entries;
+		const activeFlush = this.flushEntries(entries);
+		this._activeFlush = activeFlush;
 		try {
-			// The emptiness check happens under the mutex so a caller waiting on this lock (e.g.
-			// query()'s pre-read flush) genuinely waits for any in-progress write, rather than
-			// seeing a cache another flush has already spliced out and wrongly concluding there is
-			// nothing pending.
-			if (Is.arrayValue(this._batchCache)) {
-				entries = this._batchCache.splice(0);
-				this._inFlightEntries = entries;
-
-				const perTenantEntities: Span[] = [];
-				const contextGroups = new Map<string, { contextIds: IContextIds; entities: Span[] }>();
-
-				for (const entry of entries) {
-					if (entry.perTenant) {
-						perTenantEntities.push(entry.entity);
-					} else {
-						const key = JsonHelper.canonicalize(entry.contextIds);
-						let group = contextGroups.get(key);
-						if (Is.empty(group)) {
-							group = { contextIds: entry.contextIds, entities: [] };
-							contextGroups.set(key, group);
-						}
-						group.entities.push(entry.entity);
-					}
-				}
-
-				if (perTenantEntities.length > 0) {
-					await this._platformComponent.execute(async () =>
-						this._spanStorage.setBatch(perTenantEntities)
-					);
-				}
-
-				for (const group of contextGroups.values()) {
-					await ContextIdStore.run(group.contextIds, async () =>
-						this._spanStorage.setBatch(group.entities)
-					);
-				}
-			}
-		} catch (err) {
-			this._batchCache.unshift(...entries);
-			if (this._maxCacheSize > 0 && this._batchCache.length > this._maxCacheSize) {
-				this._batchCache.splice(0, this._batchCache.length - this._maxCacheSize);
-			}
-			await this._logging?.log({
-				level: "error",
-				source: EntityStorageTracingConnector.CLASS_NAME,
-				ts: Date.now(),
-				message: "flushFailed",
-				error: BaseError.fromError(err)
-			});
+			await activeFlush;
 		} finally {
-			this._inFlightEntries = [];
-			Mutex.unlock(this._mutexKey);
+			if (this._activeFlush === activeFlush) {
+				this._activeFlush = undefined;
+			}
+			this.startTimer();
 		}
-
-		this.startTimer();
 	}
 
 	/**
@@ -563,22 +508,65 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			return;
 		}
 
-		let shouldFlush = false;
-		const locked = await Mutex.lock(this._mutexKey, {
-			throwOnTimeout: true,
-			timeoutMs: this._mutexTimeoutMs
-		});
-		if (locked) {
-			try {
-				this._batchCache.push({ entity, contextIds, perTenant });
-				shouldFlush = !Is.empty(this._batchSize) && this._batchCache.length >= this._batchSize;
-			} finally {
-				Mutex.unlock(this._mutexKey);
-			}
-		}
+		this._batchCache.push({ entity, contextIds, perTenant });
+		const shouldFlush = !Is.empty(this._batchSize) && this._batchCache.length >= this._batchSize;
 
 		if (shouldFlush) {
-			await this.flush();
+			globalThis.setTimeout(async () => {
+				await this.flush();
+			}, 0);
+		}
+	}
+
+	/**
+	 * Write one snapshot of cached spans to storage.
+	 * @param entries The spans captured by the flush pass.
+	 * @returns A promise that resolves when the snapshot has been written.
+	 * @internal
+	 */
+	private async flushEntries(entries: IBatchEntry[]): Promise<void> {
+		try {
+			const perTenantEntities: Span[] = [];
+			const contextGroups = new Map<string, { contextIds: IContextIds; entities: Span[] }>();
+
+			for (const entry of entries) {
+				if (entry.perTenant) {
+					perTenantEntities.push(entry.entity);
+				} else {
+					const key = JsonHelper.canonicalize(entry.contextIds);
+					let group = contextGroups.get(key);
+					if (Is.empty(group)) {
+						group = { contextIds: entry.contextIds, entities: [] };
+						contextGroups.set(key, group);
+					}
+					group.entities.push(entry.entity);
+				}
+			}
+
+			if (perTenantEntities.length > 0) {
+				await this._platformComponent.execute(async () =>
+					this._spanStorage.setBatch(perTenantEntities)
+				);
+			}
+			for (const group of contextGroups.values()) {
+				await ContextIdStore.run(group.contextIds, async () =>
+					this._spanStorage.setBatch(group.entities)
+				);
+			}
+		} catch (err) {
+			this._batchCache.unshift(...entries);
+			if (this._maxCacheSize > 0 && this._batchCache.length > this._maxCacheSize) {
+				this._batchCache.splice(0, this._batchCache.length - this._maxCacheSize);
+			}
+			await this._logging?.log({
+				level: "error",
+				source: EntityStorageTracingConnector.CLASS_NAME,
+				ts: Date.now(),
+				message: "flushFailed",
+				error: BaseError.fromError(err)
+			});
+		} finally {
+			this._inFlightEntries = [];
 		}
 	}
 
