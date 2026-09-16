@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.3-next.7](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.6...tracing-facades-v0.9.3-next.7) (2026-09-16)
+
+
+### Features
+
+* fail loudly when a facade resolves its own proxy ([#57](https://github.com/iotaledger/twin-tracing/issues/57)) ([9e8cc15](https://github.com/iotaledger/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.9.3-next.6 to 0.9.3-next.7
+
 ## [0.9.3-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.5...tracing-facades-v0.9.3-next.6) (2026-09-14)
 
 
