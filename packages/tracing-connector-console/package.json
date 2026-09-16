@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/tracing-connector-console",
-	"version": "0.9.3-next.7",
+	"version": "0.10.0",
 	"description": "Writes completed spans to the console for development visibility.",
 	"repository": {
 		"type": "git",
@@ -28,16 +28,16 @@
 		"dist:no-test": "npm run clean && npm run build && npm run test:build"
 	},
 	"dependencies": {
-		"@twin.org/core": "next",
-		"@twin.org/nameof": "next",
-		"@twin.org/tracing-models": "0.9.3-next.7"
+		"@twin.org/core": "^0.10.0",
+		"@twin.org/nameof": "^0.10.0",
+		"@twin.org/tracing-models": "^0.10.0"
 	},
 	"devDependencies": {
-		"@twin.org/context": "next",
-		"@twin.org/entity": "next",
-		"@twin.org/nameof-transformer": "next",
-		"@twin.org/nameof-vitest-plugin": "next",
-		"@twin.org/validate-locales": "next",
+		"@twin.org/context": "^0.10.0",
+		"@twin.org/entity": "^0.10.0",
+		"@twin.org/nameof-transformer": "^0.10.0",
+		"@twin.org/nameof-vitest-plugin": "^0.10.0",
+		"@twin.org/validate-locales": "^0.10.0",
 		"@types/node": "26.1.2",
 		"@vitest/coverage-v8": "4.1.10",
 		"copyfiles": "2.4.1",
