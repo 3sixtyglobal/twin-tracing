@@ -13,6 +13,14 @@ sent.
 
 ***
 
+### loggingComponentType? {#loggingcomponenttype}
+
+> `optional` **loggingComponentType?**: `string`
+
+The type for the logging component, used to report a tracing failure.
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`ITracingRestClientProcessorConfig`](ITracingRestClientProcessorConfig.md)

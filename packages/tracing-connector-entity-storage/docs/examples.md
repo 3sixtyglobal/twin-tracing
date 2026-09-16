@@ -57,3 +57,29 @@ const result = await connector.query({
   ]
 });
 ```
+
+## Retention
+
+The connector trims the span table on a timer while it is running, so `start` must be called for
+retention to take effect and `stop` clears the timer. Four independent passes run each tick, all
+deleting the oldest matches in pages of `retentionBatchSize`: age-based and count-based retention
+only ever remove spans that have already ended, so a span still in progress is never deleted by
+either; a separate, more generous age cutoff (`retainOpenForMs`) removes an open span presumed
+abandoned - its `endSpan` is realistically never coming; and a count-based safety valve
+(`maxOpenEntries`) bounds worst-case growth from spans that never end well before
+`retainOpenForMs` would.
+
+```typescript
+const connector = new EntityStorageTracingConnector({
+  config: {
+    retainForMs: 172800000, // remove ended spans that started more than 2 days ago, 0 disables
+    retainOpenForMs: 345600000, // remove open spans older than 4 days, presumed abandoned, 0 disables
+    maxEntries: 10000, // keep at most this many ended spans, 0 disables
+    maxOpenEntries: 1000, // keep at most this many open spans, oldest-first, 0 disables
+    retentionIntervalMs: 300000, // how often the cleanup runs, 0 disables
+    retentionBatchSize: 1000 // spans deleted per removeBatch call
+  }
+});
+
+await connector.start();
+```

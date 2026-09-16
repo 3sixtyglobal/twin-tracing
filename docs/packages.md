@@ -24,6 +24,14 @@ This package provides an OpenTelemetry tracing connector which exports completed
 - [Examples](../packages/tracing-connector-opentelemetry/docs/examples.md)
 - [Changelog](../packages/tracing-connector-opentelemetry/docs/changelog.md)
 
+## tracing-connector-console
+
+This package provides a tracing connector which writes each completed span to the console. It is intended for development and debugging.
+
+- [README](../packages/tracing-connector-console/README.md)
+- [Examples](../packages/tracing-connector-console/docs/examples.md)
+- [Changelog](../packages/tracing-connector-console/docs/changelog.md)
+
 ## tracing-service
 
 This package exposes tracing operations through service routes and API contracts for server-side integration. It implements the tracing component contract and resolves a tracing connector through the factory pattern.
@@ -47,3 +55,11 @@ This package provides the processors which trace the HTTP boundary. A route proc
 - [README](../packages/tracing-processors/README.md)
 - [Examples](../packages/tracing-processors/docs/examples.md)
 - [Changelog](../packages/tracing-processors/docs/changelog.md)
+
+## tracing-facades
+
+This package provides a tracing facade which records a span for each method called on a factory produced component, so a component can be traced without being modified. It builds on the facade support in the component factories.
+
+- [README](../packages/tracing-facades/README.md)
+- [Examples](../packages/tracing-facades/docs/examples.md)
+- [Changelog](../packages/tracing-facades/docs/changelog.md)

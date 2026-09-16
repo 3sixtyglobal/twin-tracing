@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdKeys, ContextIdStore, type IContextIds } from "@twin.org/context";
 import { GeneralError } from "@twin.org/core";
+import type { ILoggingComponent } from "@twin.org/logging-models";
 import { SpanHelper } from "../src/helpers/spanHelper.js";
 import { TraceparentHelper } from "../src/helpers/traceparentHelper.js";
 import { TracingHelper } from "../src/helpers/tracingHelper.js";
@@ -282,6 +283,68 @@ describe("TracingHelper", () => {
 			expect(after?.[TracingContextIdKeys.SpanId]).toBeUndefined();
 			expect(after?.[TracingContextIdKeys.TraceId]).toBeUndefined();
 		});
+	});
+
+	test("runs the callback untraced when the span cannot be started", async () => {
+		const failing = new TestTracingComponent();
+		failing.startSpan = async () => {
+			throw new GeneralError("test", "startFailed");
+		};
+
+		let seen: ISpan | undefined = {} as ISpan;
+
+		const result = await TracingHelper.withSpan(failing, "op", undefined, async span => {
+			seen = span;
+			return "value";
+		});
+
+		// The work must not be lost because the connector could not record it.
+		expect(result).toEqual("value");
+		expect(seen).toBeUndefined();
+	});
+
+	test("returns the result when the span cannot be ended", async () => {
+		const failing = new TestTracingComponent();
+		failing.endSpan = async () => {
+			throw new GeneralError("test", "endFailed");
+		};
+
+		await expect(
+			TracingHelper.withSpan(failing, "op", undefined, async () => "value")
+		).resolves.toEqual("value");
+	});
+
+	test("rethrows the original error when the span cannot be ended", async () => {
+		const failing = new TestTracingComponent();
+		failing.endSpan = async () => {
+			throw new GeneralError("test", "endFailed");
+		};
+
+		// The failure of the callback is what the caller needs to see, not the tracing failure.
+		await expect(
+			TracingHelper.withSpan(failing, "op", undefined, async () => {
+				throw new GeneralError("test", "callbackFailed");
+			})
+		).rejects.toThrow("test.callbackFailed");
+	});
+
+	test("logs a failure to start a span when a logging component is supplied", async () => {
+		const failing = new TestTracingComponent();
+		failing.startSpan = async () => {
+			throw new GeneralError("test", "startFailed");
+		};
+
+		const logged: string[] = [];
+		const logging = {
+			className: () => "TestLogging",
+			log: async (entry: { message: string }) => {
+				logged.push(entry.message);
+			}
+		} as unknown as ILoggingComponent;
+
+		await TracingHelper.withSpan(failing, "op", undefined, async () => "value", logging);
+
+		expect(logged).toEqual(["startSpanFailed"]);
 	});
 
 	test("ignores malformed tracing ids in the context and starts a new trace", async () => {

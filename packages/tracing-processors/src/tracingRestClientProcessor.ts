@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IRestClientProcessor, IRestClientProcessorContext } from "@twin.org/api-models";
 import { ComponentFactory, Is } from "@twin.org/core";
+import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import {
 	SpanKind,
@@ -10,6 +11,7 @@ import {
 	type ITracingComponent
 } from "@twin.org/tracing-models";
 import { HttpStatusCode } from "@twin.org/web";
+import { HttpSpanAttributes } from "./models/httpSpanAttributes.js";
 import type { ITracingRestClientProcessorConstructorOptions } from "./models/ITracingRestClientProcessorConstructorOptions.js";
 
 /**
@@ -28,6 +30,12 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 	private readonly _tracing?: ITracingComponent;
 
 	/**
+	 * The component for logging a tracing failure.
+	 * @internal
+	 */
+	private readonly _logging?: ILoggingComponent;
+
+	/**
 	 * Route templates to skip tracing.
 	 * @internal
 	 */
@@ -39,6 +47,7 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 	 */
 	constructor(options?: ITracingRestClientProcessorConstructorOptions) {
 		this._tracing = ComponentFactory.getIfExists(options?.tracingComponentType);
+		this._logging = ComponentFactory.getIfExists(options?.loggingComponentType);
 		this._excludeRouteTemplates = options?.config?.excludePaths ?? [];
 	}
 
@@ -70,7 +79,10 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 			`${context.restClientClassName}${context.route.startsWith("/") ? "" : "/"}${context.route}`,
 			{
 				kind: SpanKind.Client,
-				attributes: { "http.method": context.method, "http.route": context.route }
+				attributes: {
+					[HttpSpanAttributes.HttpMethod]: context.method,
+					[HttpSpanAttributes.HttpRoute]: context.route
+				}
 			},
 			async span => {
 				if (!Is.empty(span)) {
@@ -82,12 +94,13 @@ export class TracingRestClientProcessor implements IRestClientProcessor {
 				if (!Is.empty(span)) {
 					span.attributes = {
 						...span.attributes,
-						"http.status_code": response.status ?? HttpStatusCode.ok
+						[HttpSpanAttributes.HttpStatusCode]: response.status ?? HttpStatusCode.ok
 					};
 				}
 
 				return response;
-			}
+			},
+			this._logging
 		);
 	}
 }

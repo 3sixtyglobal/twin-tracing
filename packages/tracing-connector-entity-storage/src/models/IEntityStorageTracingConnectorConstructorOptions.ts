@@ -19,6 +19,12 @@ export interface IEntityStorageTracingConnectorConstructorOptions {
 	platformComponentType?: string;
 
 	/**
+	 * The type of the logging component to use for reporting retention failures.
+	 * @default logging
+	 */
+	loggingComponentType?: string;
+
+	/**
 	 * The configuration for the entity storage tracing connector.
 	 */
 	config?: IEntityStorageTracingConnectorConfig;

@@ -3,20 +3,25 @@
 import type { IPlatformComponent } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore, type IContextIds } from "@twin.org/context";
 import {
+	BaseError,
 	Coerce,
 	ComponentFactory,
 	Guards,
 	Is,
 	JsonHelper,
-	Mutex,
-	NotFoundError,
-	RandomHelper
+	NotFoundError
 } from "@twin.org/core";
-import { LogicalOperator, type EntityCondition, type SortDirection } from "@twin.org/entity";
+import {
+	ComparisonOperator,
+	LogicalOperator,
+	SortDirection,
+	type EntityCondition
+} from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
+import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import {
 	SpanHelper,
@@ -28,6 +33,7 @@ import {
 import { Span } from "./entities/span.js";
 import type { SpanLink } from "./entities/spanLink.js";
 import type { IBatchEntry } from "./models/IBatchEntry.js";
+
 import type { IEntityStorageTracingConnectorConstructorOptions } from "./models/IEntityStorageTracingConnectorConstructorOptions.js";
 
 /**
@@ -60,6 +66,42 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	public static readonly DEFAULT_MAX_CACHE_SIZE: number = 1000;
 
 	/**
+	 * Default interval in milliseconds between retention cleanup runs, 5 minutes.
+	 */
+	public static readonly DEFAULT_RETENTION_INTERVAL_MS: number = 300000;
+
+	/**
+	 * Default maximum age of an ended span before it is removed, 2 days.
+	 */
+	public static readonly DEFAULT_RETAIN_FOR_MS: number = 172800000;
+
+	/**
+	 * Default maximum age of an open span before it is presumed abandoned and removed, 4 days (2x the ended-span default).
+	 */
+	public static readonly DEFAULT_RETAIN_OPEN_FOR_MS: number = 345600000;
+
+	/**
+	 * Default maximum number of ended spans to keep in storage.
+	 */
+	public static readonly DEFAULT_MAX_ENTRIES: number = 10000;
+
+	/**
+	 * Default maximum number of open spans to keep in storage, a safety valve bounding worst-case growth from spans that never end (e.g. a caller bug) well before retainOpenForMs would.
+	 */
+	public static readonly DEFAULT_MAX_OPEN_ENTRIES: number = 1000;
+
+	/**
+	 * Default maximum number of spans to delete per removeBatch call.
+	 */
+	public static readonly DEFAULT_RETENTION_BATCH_SIZE: number = 1000;
+
+	/**
+	 * Maximum number of delete batches issued in a single retention pass, bounding the work of a
+	 * pass so a large backlog drains across intervals instead of in one burst.
+	 */
+	public static readonly RETENTION_MAX_BATCHES_PER_PASS: number = 10;
+
+	/**
 	 * The entity storage for the spans.
 	 * @internal
 	 */
@@ -70,6 +112,12 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	 * @internal
 	 */
 	private readonly _platformComponent: IPlatformComponent;
+
+	/**
+	 * Component for logging retention and flush failures.
+	 * @internal
+	 */
+	private readonly _logging?: ILoggingComponent;
 
 	/**
 	 * Flush when the cache reaches this size; undefined or <= 1 disables size-based flushing.
@@ -90,28 +138,77 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	private readonly _batchCache: IBatchEntry[];
 
 	/**
+	 * Entries spliced out of _batchCache by an in-progress flush, kept visible here until their
+	 * write commits or they are re-queued, so a span is never absent from both at once.
+	 * @internal
+	 */
+	private _inFlightEntries: IBatchEntry[];
+
+	/**
 	 * Maximum spans to keep after a failed flush re-queue; 0 means unlimited.
 	 * @internal
 	 */
 	private readonly _maxCacheSize: number;
 
 	/**
-	 * Timeout in milliseconds passed to Mutex.lock calls.
+	 * The flush pass in progress, so concurrent flush callers can wait for it without blocking
+	 * span recording.
 	 * @internal
 	 */
-	private readonly _mutexTimeoutMs?: number;
+	private _activeFlush?: Promise<void>;
 
 	/**
-	 * Unique key used to serialise concurrent flush calls via Mutex.
+	 * Remove ended spans older than this many milliseconds. Never removes an open span.
+	 * Undefined when age-based retention is disabled.
 	 * @internal
 	 */
-	private readonly _mutexKey: string;
+	private readonly _retainForMs?: number;
+
+	/**
+	 * Remove open (never-ended) spans older than this many milliseconds, presumed abandoned.
+	 * Undefined when open-span retention is disabled.
+	 * @internal
+	 */
+	private readonly _retainOpenForMs?: number;
+
+	/**
+	 * Keep at most this many ended spans in storage. Never counts or removes an open span.
+	 * Undefined when count-based retention is disabled.
+	 * @internal
+	 */
+	private readonly _maxEntries?: number;
+
+	/**
+	 * Keep at most this many open spans in storage, oldest-first, as a safety valve against
+	 * unbounded growth from spans that never end. Undefined when disabled.
+	 * @internal
+	 */
+	private readonly _maxOpenEntries?: number;
+
+	/**
+	 * Interval in milliseconds between retention cleanup runs.
+	 * Undefined when the retention timer is disabled.
+	 * @internal
+	 */
+	private readonly _retentionIntervalMs?: number;
+
+	/**
+	 * Maximum number of spans deleted per removeBatch call during a cleanup pass.
+	 * @internal
+	 */
+	private readonly _retentionBatchSize: number;
 
 	/**
 	 * Handle for the interval timer, present only while the connector is running.
 	 * @internal
 	 */
 	private _batchTimer?: ReturnType<typeof setTimeout>;
+
+	/**
+	 * Handle for the retention cleanup timer, present only while the connector is running.
+	 * @internal
+	 */
+	private _retentionTimer?: ReturnType<typeof setTimeout>;
 
 	/**
 	 * Is the connector running.
@@ -139,16 +236,51 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			EntityStorageTracingConnector.DEFAULT_MAX_CACHE_SIZE;
 		this._maxCacheSize = cfgMaxCacheSize > 0 ? cfgMaxCacheSize : 0;
 
-		this._mutexTimeoutMs = Coerce.integer(options?.config?.mutexTimeoutMs);
-		this._mutexKey = RandomHelper.generateUuidV7("compact");
+		const cfgRetainForMs =
+			Coerce.integer(options?.config?.retainForMs) ??
+			EntityStorageTracingConnector.DEFAULT_RETAIN_FOR_MS;
+		this._retainForMs = cfgRetainForMs > 0 ? cfgRetainForMs : undefined;
+
+		const cfgRetainOpenForMs =
+			Coerce.integer(options?.config?.retainOpenForMs) ??
+			EntityStorageTracingConnector.DEFAULT_RETAIN_OPEN_FOR_MS;
+		this._retainOpenForMs = cfgRetainOpenForMs > 0 ? cfgRetainOpenForMs : undefined;
+
+		const cfgMaxEntries =
+			Coerce.integer(options?.config?.maxEntries) ??
+			EntityStorageTracingConnector.DEFAULT_MAX_ENTRIES;
+		this._maxEntries = cfgMaxEntries > 0 ? cfgMaxEntries : undefined;
+
+		const cfgMaxOpenEntries =
+			Coerce.integer(options?.config?.maxOpenEntries) ??
+			EntityStorageTracingConnector.DEFAULT_MAX_OPEN_ENTRIES;
+		this._maxOpenEntries = cfgMaxOpenEntries > 0 ? cfgMaxOpenEntries : undefined;
+
+		const cfgRetentionIntervalMs =
+			Coerce.integer(options?.config?.retentionIntervalMs) ??
+			EntityStorageTracingConnector.DEFAULT_RETENTION_INTERVAL_MS;
+		this._retentionIntervalMs = cfgRetentionIntervalMs > 0 ? cfgRetentionIntervalMs : undefined;
+
+		const cfgRetentionBatchSize =
+			Coerce.integer(options?.config?.retentionBatchSize) ??
+			EntityStorageTracingConnector.DEFAULT_RETENTION_BATCH_SIZE;
+		this._retentionBatchSize =
+			cfgRetentionBatchSize > 0
+				? cfgRetentionBatchSize
+				: EntityStorageTracingConnector.DEFAULT_RETENTION_BATCH_SIZE;
+
 		this._started = false;
 		this._batchCache = [];
+		this._inFlightEntries = [];
 
 		this._spanStorage = EntityStorageConnectorFactory.get(
 			options?.spanStorageConnectorType ?? "span"
 		);
 		this._platformComponent = ComponentFactory.get<IPlatformComponent>(
 			options?.platformComponentType ?? "platform"
+		);
+		this._logging = ComponentFactory.getIfExists<ILoggingComponent>(
+			options?.loggingComponentType ?? "logging"
 		);
 	}
 
@@ -168,6 +300,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 		if (!this._started) {
 			this._started = true;
 			this.startTimer();
+			this.startRetentionTimer();
 		}
 	}
 
@@ -179,6 +312,7 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 		if (this._started) {
 			this._started = false;
 			this.stopTimer();
+			this.stopRetentionTimer();
 		}
 		await this.flush();
 	}
@@ -222,7 +356,9 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			!Is.stringValue(contextIds[ContextIdKeys.Tenant]) && this._platformComponent.isMultiTenant();
 
 		if (!isTenantMissing) {
-			const inCache = this._batchCache.some(e => e.entity.spanId === span.context.spanId);
+			const inCache =
+				this._batchCache.some(e => e.entity.spanId === span.context.spanId) ||
+				this._inFlightEntries.some(e => e.entity.spanId === span.context.spanId);
 			if (!inCache) {
 				const existing = await this._spanStorage.get(span.context.spanId);
 				if (Is.empty(existing)) {
@@ -323,69 +459,32 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 	/**
 	 * Write all cached spans to storage and clear the cache.
 	 * Spans sharing the same tenant context are grouped into a single setBatch call.
-	 * If the mutex cannot be acquired the call returns without writing.
 	 * On a storage write failure the spans are returned to the head of the cache for the next attempt.
-	 * @returns A promise that resolves when all cached spans have been written to storage.
+	 * @returns A promise that resolves when the cached spans have been written to storage.
 	 */
 	public async flush(): Promise<void> {
 		this.stopTimer();
 
+		if (this._activeFlush) {
+			await this._activeFlush;
+		}
 		if (this._batchCache.length === 0) {
 			this.startTimer();
 			return;
 		}
 
-		const locked = await Mutex.lock(this._mutexKey, {
-			throwOnTimeout: true,
-			timeoutMs: this._mutexTimeoutMs
-		});
-		if (!locked) {
-			this.startTimer();
-			return;
-		}
-
-		let entries: IBatchEntry[] = [];
+		const entries = this._batchCache.splice(0);
+		this._inFlightEntries = entries;
+		const activeFlush = this.flushEntries(entries);
+		this._activeFlush = activeFlush;
 		try {
-			entries = this._batchCache.splice(0);
-
-			const perTenantEntities: Span[] = [];
-			const contextGroups = new Map<string, { contextIds: IContextIds; entities: Span[] }>();
-
-			for (const entry of entries) {
-				if (entry.perTenant) {
-					perTenantEntities.push(entry.entity);
-				} else {
-					const key = JsonHelper.canonicalize(entry.contextIds);
-					let group = contextGroups.get(key);
-					if (Is.empty(group)) {
-						group = { contextIds: entry.contextIds, entities: [] };
-						contextGroups.set(key, group);
-					}
-					group.entities.push(entry.entity);
-				}
-			}
-
-			if (perTenantEntities.length > 0) {
-				await this._platformComponent.execute(async () =>
-					this._spanStorage.setBatch(perTenantEntities)
-				);
-			}
-
-			for (const group of contextGroups.values()) {
-				await ContextIdStore.run(group.contextIds, async () =>
-					this._spanStorage.setBatch(group.entities)
-				);
-			}
-		} catch {
-			this._batchCache.unshift(...entries);
-			if (this._maxCacheSize > 0 && this._batchCache.length > this._maxCacheSize) {
-				this._batchCache.splice(0, this._batchCache.length - this._maxCacheSize);
-			}
+			await activeFlush;
 		} finally {
-			Mutex.unlock(this._mutexKey);
+			if (this._activeFlush === activeFlush) {
+				this._activeFlush = undefined;
+			}
+			this.startTimer();
 		}
-
-		this.startTimer();
 	}
 
 	/**
@@ -409,22 +508,228 @@ export class EntityStorageTracingConnector implements ITracingConnector {
 			return;
 		}
 
-		let shouldFlush = false;
-		const locked = await Mutex.lock(this._mutexKey, {
-			throwOnTimeout: true,
-			timeoutMs: this._mutexTimeoutMs
-		});
-		if (locked) {
-			try {
-				this._batchCache.push({ entity, contextIds, perTenant });
-				shouldFlush = !Is.empty(this._batchSize) && this._batchCache.length >= this._batchSize;
-			} finally {
-				Mutex.unlock(this._mutexKey);
-			}
-		}
+		this._batchCache.push({ entity, contextIds, perTenant });
+		const shouldFlush = !Is.empty(this._batchSize) && this._batchCache.length >= this._batchSize;
 
 		if (shouldFlush) {
-			await this.flush();
+			globalThis.setTimeout(async () => {
+				await this.flush();
+			}, 0);
+		}
+	}
+
+	/**
+	 * Write one snapshot of cached spans to storage.
+	 * @param entries The spans captured by the flush pass.
+	 * @returns A promise that resolves when the snapshot has been written.
+	 * @internal
+	 */
+	private async flushEntries(entries: IBatchEntry[]): Promise<void> {
+		try {
+			const perTenantEntities: Span[] = [];
+			const contextGroups = new Map<string, { contextIds: IContextIds; entities: Span[] }>();
+
+			for (const entry of entries) {
+				if (entry.perTenant) {
+					perTenantEntities.push(entry.entity);
+				} else {
+					const key = JsonHelper.canonicalize(entry.contextIds);
+					let group = contextGroups.get(key);
+					if (Is.empty(group)) {
+						group = { contextIds: entry.contextIds, entities: [] };
+						contextGroups.set(key, group);
+					}
+					group.entities.push(entry.entity);
+				}
+			}
+
+			if (perTenantEntities.length > 0) {
+				await this._platformComponent.execute(async () =>
+					this._spanStorage.setBatch(perTenantEntities)
+				);
+			}
+			for (const group of contextGroups.values()) {
+				await ContextIdStore.run(group.contextIds, async () =>
+					this._spanStorage.setBatch(group.entities)
+				);
+			}
+		} catch (err) {
+			this._batchCache.unshift(...entries);
+			if (this._maxCacheSize > 0 && this._batchCache.length > this._maxCacheSize) {
+				this._batchCache.splice(0, this._batchCache.length - this._maxCacheSize);
+			}
+			await this._logging?.log({
+				level: "error",
+				source: EntityStorageTracingConnector.CLASS_NAME,
+				ts: Date.now(),
+				message: "flushFailed",
+				error: BaseError.fromError(err)
+			});
+		} finally {
+			this._inFlightEntries = [];
+		}
+	}
+
+	/**
+	 * Delete spans that exceed the configured retention thresholds.
+	 * @internal
+	 */
+	private async runRetention(): Promise<void> {
+		this.stopRetentionTimer();
+
+		try {
+			await this._platformComponent.execute(async () => {
+				try {
+					// Shared across the passes below - the age/count-ended passes and the
+					// count-open safety valve never cross into each other's population.
+					const endedCondition: EntityCondition<Span> = {
+						property: "endTs",
+						value: undefined,
+						comparison: ComparisonOperator.NotEquals
+					};
+					const openCondition: EntityCondition<Span> = {
+						property: "endTs",
+						value: undefined,
+						comparison: ComparisonOperator.Equals
+					};
+
+					if (!Is.empty(this._retainForMs)) {
+						const ageCondition: EntityCondition<Span> = {
+							conditions: [
+								{
+									property: "startTs",
+									value: Date.now() - this._retainForMs,
+									comparison: ComparisonOperator.LessThan
+								},
+								endedCondition
+							],
+							logicalOperator: LogicalOperator.And
+						};
+						await this.removeOldestSpans(await this._spanStorage.count(ageCondition), ageCondition);
+					}
+
+					if (!Is.empty(this._retainOpenForMs)) {
+						const orphanCondition: EntityCondition<Span> = {
+							conditions: [
+								{
+									property: "startTs",
+									value: Date.now() - this._retainOpenForMs,
+									comparison: ComparisonOperator.LessThan
+								},
+								openCondition
+							],
+							logicalOperator: LogicalOperator.And
+						};
+						await this.removeOldestSpans(
+							await this._spanStorage.count(orphanCondition),
+							orphanCondition
+						);
+					}
+
+					if (!Is.empty(this._maxEntries)) {
+						const total = await this._spanStorage.count(endedCondition);
+						if (total > this._maxEntries) {
+							await this.removeOldestSpans(total - this._maxEntries, endedCondition);
+						}
+					}
+
+					if (!Is.empty(this._maxOpenEntries)) {
+						const totalOpen = await this._spanStorage.count(openCondition);
+						if (totalOpen > this._maxOpenEntries) {
+							await this.removeOldestSpans(totalOpen - this._maxOpenEntries, openCondition);
+						}
+					}
+				} catch (err) {
+					await this._logging?.log({
+						level: "error",
+						source: EntityStorageTracingConnector.CLASS_NAME,
+						ts: Date.now(),
+						message: "retentionFailed",
+						error: BaseError.fromError(err)
+					});
+				}
+			});
+		} catch (err) {
+			await this._logging?.log({
+				level: "error",
+				source: EntityStorageTracingConnector.CLASS_NAME,
+				ts: Date.now(),
+				message: "retentionFailed",
+				error: BaseError.fromError(err)
+			});
+		} finally {
+			this.startRetentionTimer();
+		}
+	}
+
+	/**
+	 * Remove the oldest spans matching the conditions, a page at a time.
+	 * A pass deletes at most retentionBatchSize * RETENTION_MAX_BATCHES_PER_PASS spans.
+	 * Each page here is deleted before the next page is read, which bounds the size of
+	 * each delete statement and keeps the progress of a pass that fails part way through.
+	 * @param total The number of spans that exceed the retention threshold.
+	 * @param conditions The conditions the spans must match.
+	 * @internal
+	 */
+	private async removeOldestSpans(
+		total: number,
+		conditions?: EntityCondition<Span>
+	): Promise<void> {
+		let remaining = Math.min(
+			total,
+			this._retentionBatchSize * EntityStorageTracingConnector.RETENTION_MAX_BATCHES_PER_PASS
+		);
+
+		while (remaining > 0) {
+			const pageSize = Math.min(remaining, this._retentionBatchSize);
+
+			const result = await this._spanStorage.query(
+				conditions,
+				[{ property: "startTs", sortDirection: SortDirection.Ascending }],
+				["spanId"],
+				undefined,
+				pageSize
+			);
+
+			// A connector may return more rows than the limit asks for, so slice to the limit.
+			const spanIds = result.entities.slice(0, pageSize).map(entity => entity.spanId as string);
+			if (spanIds.length === 0) {
+				return;
+			}
+
+			await this._spanStorage.removeBatch(spanIds);
+			remaining -= spanIds.length;
+		}
+	}
+
+	/**
+	 * Start the retention timer if both a retention option and an interval are configured.
+	 * @internal
+	 */
+	private startRetentionTimer(): void {
+		if (
+			!Is.empty(this._retentionIntervalMs) &&
+			Is.empty(this._retentionTimer) &&
+			this._started &&
+			(!Is.empty(this._retainForMs) ||
+				!Is.empty(this._retainOpenForMs) ||
+				!Is.empty(this._maxEntries) ||
+				!Is.empty(this._maxOpenEntries))
+		) {
+			this._retentionTimer = globalThis.setTimeout(async () => {
+				await this.runRetention();
+			}, this._retentionIntervalMs);
+		}
+	}
+
+	/**
+	 * Stop the retention timer if it is running.
+	 * @internal
+	 */
+	private stopRetentionTimer(): void {
+		if (!Is.empty(this._retentionTimer)) {
+			globalThis.clearTimeout(this._retentionTimer);
+			this._retentionTimer = undefined;
 		}
 	}
 

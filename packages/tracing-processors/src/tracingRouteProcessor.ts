@@ -19,6 +19,7 @@ import {
 	type ITracingComponent
 } from "@twin.org/tracing-models";
 import { HttpStatusCode } from "@twin.org/web";
+import { HttpSpanAttributes } from "./models/httpSpanAttributes.js";
 import type { ITracingRouteProcessorConstructorOptions } from "./models/ITracingRouteProcessorConstructorOptions.js";
 
 /**
@@ -168,7 +169,7 @@ export class TracingRouteProcessor implements IBaseRouteProcessor {
 		try {
 			const statusCode = Is.number(response.statusCode) ? response.statusCode : HttpStatusCode.ok;
 
-			span.attributes = { ...span.attributes, "http.status_code": statusCode };
+			span.attributes = { ...span.attributes, [HttpSpanAttributes.HttpStatusCode]: statusCode };
 
 			await this._tracing.endSpan(
 				span,
@@ -214,10 +215,10 @@ export class TracingRouteProcessor implements IBaseRouteProcessor {
 		const attributes: { [key: string]: unknown } = {};
 
 		if (Is.stringValue(request.method)) {
-			attributes["http.method"] = request.method;
+			attributes[HttpSpanAttributes.HttpMethod] = request.method;
 		}
 		if (Is.stringValue(route?.path)) {
-			attributes["http.route"] = route.path;
+			attributes[HttpSpanAttributes.HttpRoute] = route.path;
 		}
 
 		return attributes;

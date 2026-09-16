@@ -22,6 +22,7 @@
 		"abbrev",
 		"autorelease",
 		"bitfield",
+		"cutoff",
 		"hotfixes",
 		"Millis",
 		"nameof",

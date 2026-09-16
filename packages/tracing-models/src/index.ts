@@ -21,6 +21,7 @@ export * from "./models/ISpanLink.js";
 export * from "./models/ISpanOptions.js";
 export * from "./models/ITracingComponent.js";
 export * from "./models/ITracingConnector.js";
+export * from "./models/spanAttributes.js";
 export * from "./models/spanKind.js";
 export * from "./models/spanStatus.js";
 export * from "./models/tracingContextIdKeys.js";

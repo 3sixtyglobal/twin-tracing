@@ -66,6 +66,63 @@ Default interval in milliseconds between automatic flushes.
 
 Default maximum number of spans to hold in the in-memory cache.
 
+***
+
+### DEFAULT\_RETENTION\_INTERVAL\_MS {#default_retention_interval_ms}
+
+> `readonly` `static` **DEFAULT\_RETENTION\_INTERVAL\_MS**: `number` = `300000`
+
+Default interval in milliseconds between retention cleanup runs, 5 minutes.
+
+***
+
+### DEFAULT\_RETAIN\_FOR\_MS {#default_retain_for_ms}
+
+> `readonly` `static` **DEFAULT\_RETAIN\_FOR\_MS**: `number` = `172800000`
+
+Default maximum age of an ended span before it is removed, 2 days.
+
+***
+
+### DEFAULT\_RETAIN\_OPEN\_FOR\_MS {#default_retain_open_for_ms}
+
+> `readonly` `static` **DEFAULT\_RETAIN\_OPEN\_FOR\_MS**: `number` = `345600000`
+
+Default maximum age of an open span before it is presumed abandoned and removed, 4 days (2x the ended-span default).
+
+***
+
+### DEFAULT\_MAX\_ENTRIES {#default_max_entries}
+
+> `readonly` `static` **DEFAULT\_MAX\_ENTRIES**: `number` = `10000`
+
+Default maximum number of ended spans to keep in storage.
+
+***
+
+### DEFAULT\_MAX\_OPEN\_ENTRIES {#default_max_open_entries}
+
+> `readonly` `static` **DEFAULT\_MAX\_OPEN\_ENTRIES**: `number` = `1000`
+
+Default maximum number of open spans to keep in storage, a safety valve bounding worst-case growth from spans that never end (e.g. a caller bug) well before retainOpenForMs would.
+
+***
+
+### DEFAULT\_RETENTION\_BATCH\_SIZE {#default_retention_batch_size}
+
+> `readonly` `static` **DEFAULT\_RETENTION\_BATCH\_SIZE**: `number` = `1000`
+
+Default maximum number of spans to delete per removeBatch call.
+
+***
+
+### RETENTION\_MAX\_BATCHES\_PER\_PASS {#retention_max_batches_per_pass}
+
+> `readonly` `static` **RETENTION\_MAX\_BATCHES\_PER\_PASS**: `number` = `10`
+
+Maximum number of delete batches issued in a single retention pass, bounding the work of a
+pass so a large backlog drains across intervals instead of in one burst.
+
 ## Methods
 
 ### className() {#classname}
@@ -272,11 +329,10 @@ and a cursor which can be used to request more entities.
 
 Write all cached spans to storage and clear the cache.
 Spans sharing the same tenant context are grouped into a single setBatch call.
-If the mutex cannot be acquired the call returns without writing.
 On a storage write failure the spans are returned to the head of the cache for the next attempt.
 
 #### Returns
 
 `Promise`\<`void`\>
 
-A promise that resolves when all cached spans have been written to storage.
+A promise that resolves when the cached spans have been written to storage.

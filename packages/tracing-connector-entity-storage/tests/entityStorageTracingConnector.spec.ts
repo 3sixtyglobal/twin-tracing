@@ -4,14 +4,19 @@ import type { IPlatformComponent } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, NotFoundError } from "@twin.org/core";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
+import {
+	MemoryEntityStorageConnector,
+	type IMemoryEntityStorageConnectorConstructorOptions
+} from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
+import type { ILogEntry } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
-import type { ITracingConnector } from "@twin.org/tracing-models";
+import type { ISpan, ITracingConnector } from "@twin.org/tracing-models";
 import type { Span } from "../src/entities/span.js";
 import type { SpanLink } from "../src/entities/spanLink.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";
+import type { IEntityStorageTracingConnectorConfig } from "../src/models/IEntityStorageTracingConnectorConfig.js";
 import { initSchema } from "../src/schema.js";
 
 // This spec is intentionally kept in sync with all other tracing connector specs.
@@ -35,6 +40,33 @@ interface StoredSpan {
 		context: { traceId: string; spanId: string; traceFlags: number };
 		attributes?: { [key: string]: unknown };
 	}[];
+}
+
+/**
+ * Memory storage whose setBatch is delayed, holding open the window where flushed entries are
+ * committed to neither the cache nor storage - the same window MySQL write latency opens in
+ * production. Exposes setBatchStarted so tests can deterministically wait until the write is
+ * in flight instead of guessing a delay long enough to land inside the window.
+ */
+class SlowSetBatchMemoryConnector extends MemoryEntityStorageConnector<Span> {
+	public readonly setBatchStarted: Promise<void>;
+
+	private readonly _setBatchStartedResolve: () => void;
+
+	constructor(options: IMemoryEntityStorageConnectorConstructorOptions) {
+		super(options);
+		let resolveSetBatchStarted: () => void = () => {};
+		this.setBatchStarted = new Promise<void>(resolve => {
+			resolveSetBatchStarted = resolve;
+		});
+		this._setBatchStartedResolve = resolveSetBatchStarted;
+	}
+
+	public override async setBatch(entities: Span[]): Promise<void> {
+		this._setBatchStartedResolve();
+		await new Promise(resolve => setTimeout(resolve, 50));
+		return super.setBatch(entities);
+	}
 }
 
 function makePlatformComponent(multiTenant: boolean): IPlatformComponent {
@@ -374,7 +406,28 @@ describe("EntityStorageTracingConnector", () => {
 
 			await connector.startSpan("three");
 
-			expect(await storage.getStore()).toHaveLength(3);
+			await vi.waitFor(async () => {
+				expect(await storage.getStore()).toHaveLength(3);
+			});
+		});
+
+		test("does not wait for the storage write when the batch fills", async () => {
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 2, batchIntervalMs: 0 }
+			});
+			const setBatch = storage.setBatch.bind(storage);
+			vi.spyOn(storage, "setBatch").mockImplementation(async entities => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+				await setBatch(entities);
+			});
+
+			await connector.startSpan("one");
+			const start = Date.now();
+			await connector.startSpan("two");
+
+			expect(Date.now() - start).toBeLessThan(100);
+			await connector.stop();
+			expect(await storage.getStore()).toHaveLength(2);
 		});
 
 		test("flush writes all cached spans to storage", async () => {
@@ -438,8 +491,476 @@ describe("EntityStorageTracingConnector", () => {
 			await connector.startSpan("a");
 			await connector.startSpan("b");
 
-			const stored = await storage.getStore();
-			expect(stored).toHaveLength(2);
+			await vi.waitFor(async () => {
+				const stored = await storage.getStore();
+				expect(stored).toHaveLength(2);
+			});
+		});
+
+		test("endSpan succeeds for a span whose start is in an in-flight flush write", async () => {
+			const slowStorage = new SlowSetBatchMemoryConnector({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			EntityStorageConnectorFactory.register("span", () => slowStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 1000, batchIntervalMs: 0 }
+			});
+
+			const span = await connector.startSpan("raced");
+			const inFlightFlush = connector.flush();
+			await slowStorage.setBatchStarted;
+
+			await connector.endSpan(span, SpanStatus.Ok);
+
+			await inFlightFlush;
+			await connector.flush();
+
+			const stored = await slowStorage.getStore();
+			expect(stored).toHaveLength(1);
+			expect(stored[0].status).toEqual(SpanStatus.Ok);
+			expect(stored[0].endTs).toBeDefined();
+		});
+
+		test("query reflects spans from an in-flight flush write", async () => {
+			const slowStorage = new SlowSetBatchMemoryConnector({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			EntityStorageConnectorFactory.register("span", () => slowStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 1000, batchIntervalMs: 0 }
+			});
+
+			const span = await connector.startSpan("in-flight-query");
+			const inFlightFlush = connector.flush();
+			await slowStorage.setBatchStarted;
+
+			const result = await connector.query();
+
+			expect(result.entities).toHaveLength(1);
+			expect(result.entities[0].context.spanId).toEqual(span.context.spanId);
+
+			await inFlightFlush;
+		});
+
+		test("logs flushFailed and re-queues the entries when the write fails", async () => {
+			const logEntries: ILogEntry[] = [];
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log: async (entry: ILogEntry) => {
+					logEntries.push(entry);
+				},
+				query: async () => ({ entities: [] })
+			}));
+
+			const failingStorage = new MemoryEntityStorageConnector<Span>({
+				entitySchema: nameof<Span>(),
+				config: { storageKey: "span" }
+			});
+			vi.spyOn(failingStorage, "setBatch").mockRejectedValueOnce(new Error("storage unavailable"));
+			EntityStorageConnectorFactory.register("span", () => failingStorage);
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+
+			await connector.startSpan("will-fail-once");
+			await connector.flush();
+
+			expect(logEntries).toHaveLength(1);
+			expect(logEntries[0].level).toEqual("error");
+			expect(logEntries[0].source).toEqual(EntityStorageTracingConnector.CLASS_NAME);
+			expect(logEntries[0].message).toEqual("flushFailed");
+			expect(logEntries[0].error?.message).toContain("storage unavailable");
+
+			await connector.flush();
+			expect(await failingStorage.getStore()).toHaveLength(1);
+
+			ComponentFactory.unregister("logging");
+		});
+
+		test("does not log when a flush succeeds", async () => {
+			const logEntries: ILogEntry[] = [];
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log: async (entry: ILogEntry) => {
+					logEntries.push(entry);
+				},
+				query: async () => ({ entities: [] })
+			}));
+
+			const connector = new EntityStorageTracingConnector({
+				config: { batchSize: 10, batchIntervalMs: 0 }
+			});
+			await connector.startSpan("ok");
+			await connector.flush();
+
+			expect(logEntries).toHaveLength(0);
+
+			ComponentFactory.unregister("logging");
+		});
+	});
+
+	describe("retention", () => {
+		const INTERVAL_MS = 60000;
+		const TWO_HOURS_MS = 7200000;
+		const FIVE_DAYS_MS = 432000000;
+
+		let logEntries: ILogEntry[];
+		let consoleErrors: unknown[][];
+		let connectors: EntityStorageTracingConnector[];
+
+		function registerLogging(log: (logEntry: ILogEntry) => Promise<void>): void {
+			ComponentFactory.register("logging", () => ({
+				className: () => "MockLoggingComponent",
+				log,
+				query: async () => ({ entities: [] })
+			}));
+		}
+
+		async function startConnector(
+			config?: IEntityStorageTracingConnectorConfig
+		): Promise<EntityStorageTracingConnector> {
+			const connector = new EntityStorageTracingConnector({
+				config: {
+					batchSize: 0,
+					batchIntervalMs: 0,
+					retainForMs: 0,
+					maxEntries: 0,
+					retentionIntervalMs: INTERVAL_MS,
+					...config
+				}
+			});
+			connectors.push(connector);
+			await connector.start();
+			return connector;
+		}
+
+		async function recordSpanAt(
+			connector: EntityStorageTracingConnector,
+			name: string,
+			startTs: number
+		): Promise<void> {
+			const span = SpanHelper.startSpan(name, { startTs });
+			SpanHelper.endSpan(span, SpanStatus.Ok, startTs + 1);
+			await connector.recordSpan(span);
+		}
+
+		async function recordOpenSpanAt(
+			connector: EntityStorageTracingConnector,
+			name: string,
+			startTs: number
+		): Promise<ISpan> {
+			const span = SpanHelper.startSpan(name, { startTs });
+			await connector.recordSpan(span);
+			return span;
+		}
+
+		async function tick(): Promise<void> {
+			await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+		}
+
+		async function storedNames(): Promise<string[]> {
+			return (await storage.getStore()).map(span => span.name).sort();
+		}
+
+		beforeEach(() => {
+			consoleErrors = [];
+			vi.spyOn(globalThis.console, "error").mockImplementation((...params: unknown[]) => {
+				consoleErrors.push(params);
+			});
+			ComponentFactory.register("platform", () => makePlatformComponent(false));
+			logEntries = [];
+			registerLogging(async logEntry => {
+				logEntries.push(logEntry);
+			});
+			connectors = [];
+			vi.useFakeTimers();
+		});
+
+		afterEach(async () => {
+			for (const connector of connectors) {
+				await connector.stop();
+			}
+			vi.useRealTimers();
+			vi.restoreAllMocks();
+			ComponentFactory.unregister("logging");
+		});
+
+		test("removes spans older than retainForMs on a retention timer tick", async () => {
+			const connector = await startConnector({ retainForMs: 3600000 });
+			await recordSpanAt(connector, "old-1", Date.now() - TWO_HOURS_MS);
+			await recordSpanAt(connector, "old-2", Date.now() - TWO_HOURS_MS);
+			await recordSpanAt(connector, "recent", Date.now());
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["recent"]);
+		});
+
+		test("keeps only the newest maxEntries spans when the limit is exceeded", async () => {
+			const connector = await startConnector({ maxEntries: 2 });
+			for (let i = 1; i <= 4; i++) {
+				await recordSpanAt(connector, `span-${i}`, i * 1000);
+			}
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["span-3", "span-4"]);
+		});
+
+		test("does not remove spans when the count is within maxEntries", async () => {
+			const connector = await startConnector({ maxEntries: 5 });
+			for (let i = 1; i <= 3; i++) {
+				await recordSpanAt(connector, `span-${i}`, i * 1000);
+			}
+
+			await tick();
+
+			expect(await storedNames()).toEqual(["span-1", "span-2", "span-3"]);
+		});
+
+		test("logs a retention failure rather than swallowing it", async () => {
+			await startConnector({ retainForMs: 3600000 });
+			vi.spyOn(storage, "count").mockRejectedValue(new Error("storage offline"));
+
+			await tick();
+
+			expect(logEntries).toHaveLength(1);
+			expect(logEntries[0].level).toEqual("error");
+			expect(logEntries[0].source).toEqual(EntityStorageTracingConnector.CLASS_NAME);
+			expect(logEntries[0].message).toEqual("retentionFailed");
+			expect(logEntries[0].error?.message).toContain("storage offline");
+		});
+
+		test("logs a failure and keeps the timer running", async () => {
+			let failExecute = true;
+			ComponentFactory.register("platform", () => ({
+				className: () => "MockPlatformComponent",
+				isMultiTenant: () => true,
+				execute: async (method: () => Promise<void>) => {
+					if (failExecute) {
+						throw new Error("tenant list unavailable");
+					}
+					await method();
+				},
+				getLocalOriginContext: async () => undefined
+			}));
+			const connector = await startConnector({ retainForMs: 3600000 });
+
+			await tick();
+
+			expect(logEntries.map(entry => entry.message)).toEqual(["retentionFailed"]);
+			expect(logEntries[0].error?.message).toContain("tenant list unavailable");
+
+			// The timer survived the failure, so the next pass still trims.
+			failExecute = false;
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await tick();
+
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("deletes in pages no larger than retentionBatchSize", async () => {
+			const connector = await startConnector({ retainForMs: 3600000, retentionBatchSize: 2 });
+			const removeBatchSpy = vi.spyOn(storage, "removeBatch");
+			for (let i = 0; i < 5; i++) {
+				await recordSpanAt(connector, `old-${i}`, Date.now() - TWO_HOURS_MS);
+			}
+
+			await tick();
+
+			expect(removeBatchSpy.mock.calls.map(call => call[0].length)).toEqual([2, 2, 1]);
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("spreads a large backlog across passes instead of deleting it in one burst", async () => {
+			const connector = await startConnector({ retainForMs: 3600000, retentionBatchSize: 1 });
+			const backlog = EntityStorageTracingConnector.RETENTION_MAX_BATCHES_PER_PASS + 2;
+			for (let i = 0; i < backlog; i++) {
+				await recordSpanAt(connector, `old-${i}`, Date.now() - TWO_HOURS_MS + i);
+			}
+
+			// One pass deletes at most retentionBatchSize * RETENTION_MAX_BATCHES_PER_PASS spans.
+			await tick();
+			expect(await storedNames()).toHaveLength(2);
+
+			await tick();
+			expect(await storedNames()).toEqual([]);
+		});
+
+		test("does not run cleanup when all retention thresholds are disabled", async () => {
+			const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 0 });
+			const countSpy = vi.spyOn(storage, "count");
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await tick();
+
+			expect(countSpy).not.toHaveBeenCalled();
+			expect(await storedNames()).toEqual(["old"]);
+		});
+
+		test("stop clears the retention timer so no further cleanup runs", async () => {
+			const connector = await startConnector({ retainForMs: 3600000 });
+			await recordSpanAt(connector, "old", Date.now() - TWO_HOURS_MS);
+
+			await connector.stop();
+			await tick();
+
+			expect(await storedNames()).toEqual(["old"]);
+		});
+
+		test("runs cleanup in each tenant context without crossing tenants", async () => {
+			const partitionedStorage = new MemoryEntityStorageConnector<Span>({
+				entitySchema: nameof<Span>(),
+				partitionContextIds: [ContextIdKeys.Tenant],
+				config: { storageKey: "span-partitioned" }
+			});
+			EntityStorageConnectorFactory.register("span", () => partitionedStorage);
+
+			const tenants = ["tenant-a", "tenant-b"];
+			ComponentFactory.register("platform", () => ({
+				className: () => "MockPlatformComponent",
+				isMultiTenant: () => true,
+				execute: async (method: () => Promise<void>) => {
+					for (const tenant of tenants) {
+						await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, method);
+					}
+				},
+				getLocalOriginContext: async () => undefined
+			}));
+			const connector = await startConnector({ retainForMs: 3600000 });
+
+			for (const tenant of tenants) {
+				await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, async () => {
+					await recordSpanAt(connector, `old-${tenant}`, Date.now() - TWO_HOURS_MS);
+					await recordSpanAt(connector, `recent-${tenant}`, Date.now());
+				});
+			}
+			expect(await partitionedStorage.getStore()).toHaveLength(4);
+
+			await tick();
+
+			expect(logEntries).toEqual([]);
+			for (const tenant of tenants) {
+				const remaining = await ContextIdStore.run({ [ContextIdKeys.Tenant]: tenant }, async () =>
+					partitionedStorage.query(undefined, undefined, undefined, undefined, 100)
+				);
+				expect(remaining.entities.map(entity => entity.name)).toEqual([`recent-${tenant}`]);
+			}
+		});
+
+		describe("still-open spans", () => {
+			test("count-based retention does not delete a still-open span", async () => {
+				const connector = await startConnector({ maxEntries: 2 });
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - TWO_HOURS_MS);
+				await recordSpanAt(connector, "ended-1", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				// Pins the full set: the open span survives AND the ended-span cap still trims the
+				// oldest ended entry - a count pass that silently does nothing would also leave
+				// open-oldest present, so toContain alone wouldn't catch that.
+				expect(await storedNames()).toEqual(["ended-2", "ended-3", "open-oldest"]);
+			});
+
+			test("endSpan succeeds for an open span that crossed the count threshold", async () => {
+				const connector = await startConnector({ maxEntries: 2 });
+				const openSpan = await recordOpenSpanAt(
+					connector,
+					"open-in-progress",
+					Date.now() - TWO_HOURS_MS
+				);
+				await recordSpanAt(connector, "ended-1", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				await connector.endSpan(openSpan, SpanStatus.Ok);
+
+				const stored = await getStoredSpan(openSpan.context.spanId);
+				expect(stored?.endTs).toBeDefined();
+				expect(stored?.status).toEqual(SpanStatus.Ok);
+			});
+
+			test("age-based retention keeps an open span older than retainForMs", async () => {
+				const connector = await startConnector({ retainForMs: 3600000 });
+				await recordOpenSpanAt(connector, "open-long-running", Date.now() - TWO_HOURS_MS);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-long-running", "recent-ended"]);
+			});
+
+			test("an open span older than retainOpenForMs is reaped as abandoned", async () => {
+				const connector = await startConnector({ retainForMs: 3600000 });
+				await recordOpenSpanAt(connector, "abandoned", Date.now() - FIVE_DAYS_MS);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["recent-ended"]);
+			});
+
+			test("honors a custom retainOpenForMs instead of the default", async () => {
+				// A 2h-old open span would survive the 4-day default; only a genuinely-applied
+				// custom retainOpenForMs of 1h would reap it, proving the config override is read.
+				const connector = await startConnector({ retainOpenForMs: 3600000 });
+				await recordOpenSpanAt(
+					connector,
+					"abandoned-under-custom-cutoff",
+					Date.now() - TWO_HOURS_MS
+				);
+				await recordSpanAt(connector, "recent-ended", Date.now());
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["recent-ended"]);
+			});
+
+			test("keeps recent open spans within maxOpenEntries untouched", async () => {
+				const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 2 });
+				await recordOpenSpanAt(connector, "open-1", Date.now() - 3000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 2000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-1", "open-2"]);
+			});
+
+			test("trims the oldest open spans once maxOpenEntries is exceeded", async () => {
+				const connector = await startConnector({ retainOpenForMs: 0, maxOpenEntries: 2 });
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - 3000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 2000);
+				await recordOpenSpanAt(connector, "open-3", Date.now() - 1000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["open-2", "open-3"]);
+			});
+
+			test("maxEntries and maxOpenEntries cap their own populations independently", async () => {
+				const connector = await startConnector({
+					retainOpenForMs: 0,
+					maxEntries: 2,
+					maxOpenEntries: 2
+				});
+				await recordOpenSpanAt(connector, "open-oldest", Date.now() - 6000);
+				await recordOpenSpanAt(connector, "open-2", Date.now() - 5000);
+				await recordOpenSpanAt(connector, "open-3", Date.now() - 4000);
+				await recordSpanAt(connector, "ended-oldest", Date.now() - 3000);
+				await recordSpanAt(connector, "ended-2", Date.now() - 2000);
+				await recordSpanAt(connector, "ended-3", Date.now() - 1000);
+
+				await tick();
+
+				expect(await storedNames()).toEqual(["ended-2", "ended-3", "open-2", "open-3"]);
+			});
 		});
 	});
 
