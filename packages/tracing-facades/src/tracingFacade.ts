@@ -1,6 +1,13 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ComponentFactory, Is, type IComponent, type IFacade } from "@twin.org/core";
+import {
+	ComponentFactory,
+	GeneralError,
+	Is,
+	SharedStore,
+	type IComponent,
+	type IFacade
+} from "@twin.org/core";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import { TracingHelper, type ITracingComponent } from "@twin.org/tracing-models";
@@ -71,6 +78,14 @@ export class TracingFacade implements IFacade, IComponent {
 	private static readonly _ASYNC_FUNCTION_TAG: string = "[object AsyncFunction]";
 
 	/**
+	 * The property every facade proxy answers, used to recognise a component this facade wrapped.
+	 * It is held in the shared store so that copies of this package loaded more than once in a
+	 * process recognise each other's proxies.
+	 * @internal
+	 */
+	private static readonly _WRAPPED: symbol = TracingFacade.wrappedProperty();
+
+	/**
 	 * The type of the component recording the spans.
 	 * @internal
 	 */
@@ -93,6 +108,13 @@ export class TracingFacade implements IFacade, IComponent {
 	 * @internal
 	 */
 	private _loggingComponent?: ILoggingComponent;
+
+	/**
+	 * Whether one of the components the facade depends on has resolved, after which the factory is
+	 * no longer consulted.
+	 * @internal
+	 */
+	private _componentsResolved: boolean;
 
 	/**
 	 * Patterns for parameters whose values are never recorded.
@@ -167,6 +189,17 @@ export class TracingFacade implements IFacade, IComponent {
 			options?.config?.maxArrayLength ?? TracingFacade.DEFAULT_MAX_ARRAY_LENGTH;
 		this._wrappers = new WeakMap();
 		this._paramNames = new WeakMap();
+		this._componentsResolved = false;
+	}
+
+	/**
+	 * Get the property a facade proxy answers, taking it from the shared store so that every copy
+	 * of this package loaded in the process uses the same one.
+	 * @returns The property.
+	 * @internal
+	 */
+	private static wrappedProperty(): symbol {
+		return SharedStore.get<symbol>("tracingFacadeWrapped", () => Symbol("tracingFacadeWrapped"));
 	}
 
 	/**
@@ -194,10 +227,33 @@ export class TracingFacade implements IFacade, IComponent {
 	 * @internal
 	 */
 	private tracingComponent(): ITracingComponent | undefined {
-		this._tracingComponent ??= ComponentFactory.getIfExists(this._tracingComponentType);
-		this._loggingComponent ??= ComponentFactory.getIfExists(this._loggingComponentType);
+		// The facade can be created before the components it depends on are registered, so the
+		// factory is consulted on each call until one of them resolves, and not after.
+		if (!this._componentsResolved) {
+			this._tracingComponent = this.resolveComponent<ITracingComponent>(this._tracingComponentType);
+			this._loggingComponent = this.resolveComponent<ILoggingComponent>(this._loggingComponentType);
+			this._componentsResolved =
+				!Is.empty(this._tracingComponent) || !Is.empty(this._loggingComponent);
+		}
 
 		return this._tracingComponent;
+	}
+
+	/**
+	 * Resolve a component the facade itself depends on.
+	 * @param instanceType The type of the component to resolve.
+	 * @returns The component, or undefined when it does not resolve.
+	 * @throws GeneralError if the component is one this facade has wrapped.
+	 * @internal
+	 */
+	private resolveComponent<T extends IComponent>(instanceType?: string): T | undefined {
+		const component = ComponentFactory.getIfExists<T>(instanceType);
+
+		if (!Is.empty(component) && Reflect.get(component, TracingFacade._WRAPPED) === true) {
+			throw new GeneralError("tracingFacade", "selfWrapped", { instanceType });
+		}
+
+		return component;
 	}
 
 	/**
@@ -214,6 +270,10 @@ export class TracingFacade implements IFacade, IComponent {
 		prop: string | symbol,
 		receiver: unknown
 	): unknown {
+		if (prop === TracingFacade._WRAPPED) {
+			return true;
+		}
+
 		const value = Reflect.get(target, prop, receiver);
 
 		if (!Is.function(value) || !Is.string(prop)) {

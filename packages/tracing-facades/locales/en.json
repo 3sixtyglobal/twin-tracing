@@ -1,1 +1,7 @@
-{}
+{
+	"error": {
+		"tracingFacade": {
+			"selfWrapped": "The component \"{instanceType}\" is itself wrapped by this facade, so recording a span would record a span for recording the span, use the facade exclusions to leave it unwrapped"
+		}
+	}
+}

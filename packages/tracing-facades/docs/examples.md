@@ -28,7 +28,8 @@ Every other component the factory produces from that point on records a span nam
 `method:<class>.<name>` for each method called on it.
 
 The exclusions are not optional when the tracing or logging components are registered with the
-factory being activated.
+factory being activated. A missing one is not silent: the facade resolves one of its own proxies
+and throws `tracingFacade.selfWrapped` naming the type at the first traced call.
 
 With no tracing component registered the calls pass straight through. A tracing connector which
 fails does not interrupt the call it was recording, and the failure is reported to the logging

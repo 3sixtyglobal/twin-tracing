@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, GeneralError } from "@twin.org/core";
+import { ComponentFactory, GeneralError, SharedStore } from "@twin.org/core";
 import {
 	SpanHelper,
 	SpanStatus,
@@ -475,5 +475,102 @@ describe("TracingFacade", () => {
 
 		await expect(component.get("abc")).resolves.toEqual("got:abc");
 		expect(ended).toHaveLength(0);
+	});
+
+	test("stops consulting the factory once a component has resolved", async () => {
+		const component = makeFacade().wrap(new TestComponent());
+
+		await component.get("abc");
+
+		const lookups = vi.spyOn(ComponentFactory, "getIfExists");
+		await component.get("abc");
+		await component.get("abc");
+
+		expect(lookups).not.toHaveBeenCalled();
+		expect(ended).toHaveLength(3);
+
+		lookups.mockRestore();
+	});
+
+	test("keeps consulting the factory while neither component has resolved", async () => {
+		ComponentFactory.unregister("tracing");
+
+		const component = new TracingFacade({ tracingComponentType: "tracing" }).wrap(
+			new TestComponent()
+		);
+
+		await component.get("abc");
+
+		const lookups = vi.spyOn(ComponentFactory, "getIfExists");
+		await component.get("abc");
+
+		expect(lookups).toHaveBeenCalled();
+
+		lookups.mockRestore();
+		ComponentFactory.register("tracing", () => new TestTracingComponent());
+	});
+
+	test("answers the shared store symbol so another copy of the package recognises the proxy", () => {
+		const wrapped = SharedStore.get<symbol>("tracingFacadeWrapped");
+		const component = makeFacade().wrap(new TestComponent());
+
+		expect(wrapped).toBeDefined();
+		expect(Reflect.get(component, wrapped as symbol)).toEqual(true);
+	});
+
+	test("throws when the tracing component is one of its own proxies", async () => {
+		const facade = new TracingFacade({ tracingComponentType: "self-tracing" });
+		ComponentFactory.register("self-tracing", () => facade.wrap(new TestTracingComponent()));
+
+		const component = facade.wrap(new TestComponent());
+
+		await expect(component.get("abc")).rejects.toMatchObject({
+			name: "GeneralError",
+			message: "tracingFacade.selfWrapped",
+			properties: { instanceType: "self-tracing" }
+		});
+
+		ComponentFactory.unregister("self-tracing");
+	});
+
+	test("throws when the logging component is one of its own proxies", async () => {
+		const facade = new TracingFacade({
+			tracingComponentType: "tracing",
+			loggingComponentType: "self-logging"
+		});
+		ComponentFactory.register("self-logging", () =>
+			facade.wrap({
+				className: () => "TestLogging",
+				log: async () => {}
+			} as never)
+		);
+
+		const component = facade.wrap(new TestComponent());
+
+		await expect(component.get("abc")).rejects.toMatchObject({
+			name: "GeneralError",
+			message: "tracingFacade.selfWrapped",
+			properties: { instanceType: "self-logging" }
+		});
+
+		ComponentFactory.unregister("self-logging");
+	});
+
+	test("throws when another facade has wrapped the tracing component in turn", async () => {
+		const facade = new TracingFacade({ tracingComponentType: "self-tracing" });
+		ComponentFactory.register("self-tracing", () => {
+			const traced = facade.wrap(new TestTracingComponent());
+
+			return new Proxy(traced, {}) as never;
+		});
+
+		const component = facade.wrap(new TestComponent());
+
+		await expect(component.get("abc")).rejects.toMatchObject({
+			message: "tracingFacade.selfWrapped",
+			properties: { instanceType: "self-tracing" }
+		});
+
+		ComponentFactory.unregister("self-tracing");
 	});
 });
