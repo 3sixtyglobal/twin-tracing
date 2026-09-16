@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-console-v0.10.0...tracing-connector-console-v0.10.0) (2026-09-16)
+
+
+### Features
+
+* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+* release to production [skip ci] ([#61](https://github.com/iotaledger/twin-tracing/issues/61)) ([39e3c18](https://github.com/iotaledger/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
+
 ## [0.9.3-next.7](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-console-v0.9.3-next.6...tracing-connector-console-v0.9.3-next.7) (2026-09-16)
 
 
