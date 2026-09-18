@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.1-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.10.1-next.0...tracing-connector-opentelemetry-v0.10.1-next.1) (2026-09-18)
+
+
+### Features
+
+* linting and dependency update ([a9fe517](https://github.com/iotaledger/twin-tracing/commit/a9fe5172e80055c988caf59331e9553905702f62))
+* linting and dependency update ([db140c9](https://github.com/iotaledger/twin-tracing/commit/db140c99d3ef1fc07ec23d9c6055d62f62419f75))
+* linting and dependency update ([c1a2b98](https://github.com/iotaledger/twin-tracing/commit/c1a2b988441deb59592d69c7d3b6527bcb9018b2))
+* linting and dependency update ([92a699f](https://github.com/iotaledger/twin-tracing/commit/92a699fb7b7323681ffc531819de548129b7931b))
+* otlp tracing connector ([#4](https://github.com/iotaledger/twin-tracing/issues/4)) ([9e374c1](https://github.com/iotaledger/twin-tracing/commit/9e374c1597f0a387369574dac25e0d30acc1ab9b))
+* tenant aware entity storage ([#17](https://github.com/iotaledger/twin-tracing/issues/17)) ([ae11c56](https://github.com/iotaledger/twin-tracing/commit/ae11c56edf472bc1842997600238c2309ef7147d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.10.1-next.0 to 0.10.1-next.1
+
 ## [0.10.0](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-opentelemetry-v0.10.0...tracing-connector-opentelemetry-v0.10.0) (2026-09-16)
 
 
