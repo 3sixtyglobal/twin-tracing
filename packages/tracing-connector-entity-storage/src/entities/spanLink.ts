@@ -10,13 +10,13 @@ export class SpanLink {
 	/**
 	 * The id of the trace the linked span belongs to.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public traceId!: string;
 
 	/**
 	 * The id of the linked span.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public spanId!: string;
 
 	/**
