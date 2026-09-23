@@ -45,7 +45,15 @@ export class TracingFacade implements IFacade, IComponent {
 		"password",
 		"token",
 		"apiKey",
-		"mnemonic"
+		"mnemonic",
+		"currentPassword",
+		"newPassword",
+		"setSecret.data",
+		"getSecret.resolved",
+		"importKey.privateKeyPem",
+		"backupKey.resolved",
+		"restoreKey.backup",
+		"getDecryptionKey.resolved"
 	];
 
 	/**

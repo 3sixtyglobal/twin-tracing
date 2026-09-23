@@ -103,6 +103,26 @@ class TestComponent {
 	public async fail(): Promise<void> {
 		throw new GeneralError("test", "operationFailed");
 	}
+
+	public async setSecret(name: string, data: string): Promise<void> {}
+
+	public async getSecret(name: string): Promise<string> {
+		return "abandon ability able about";
+	}
+
+	public async importKey(name: string, type: string, privateKeyPem: string): Promise<void> {}
+
+	public async backupKey(name: string): Promise<string> {
+		return "base64-backup";
+	}
+
+	public async restoreKey(name: string, backup: string): Promise<void> {}
+
+	public async updatePassword(currentPassword: string, newPassword: string): Promise<void> {}
+
+	public async getDecryptionKey(trustPayload: unknown): Promise<string> {
+		return "cHJpdmF0ZUtleQ==";
+	}
 }
 
 function makeFacade(config?: ITracingFacadeConfig): TracingFacade {
@@ -322,6 +342,42 @@ describe("TracingFacade", () => {
 		const span = findSpan("method:TestComponent.login");
 		expect(span.attributes?.["param.user"]).toEqual("user");
 		expect(span.attributes?.["param.password"]).toBeUndefined();
+	});
+
+	test("does not record vault and authentication credentials by default", async () => {
+		const component = makeFacade().wrap(new TestComponent());
+
+		await component.setSecret("did:test:alice/mnemonic", "abandon ability able about");
+		await component.getSecret("did:test:alice/mnemonic");
+		await component.importKey("key", "ed25519", "-----BEGIN PRIVATE KEY-----");
+		await component.backupKey("key");
+		await component.restoreKey("key", "base64-backup");
+		await component.updatePassword("old", "new");
+		await component.getDecryptionKey({ nodeId: "node" });
+
+		const setSecret = findSpan("method:TestComponent.setSecret");
+		expect(setSecret.attributes?.["param.data"]).toBeUndefined();
+		expect(setSecret.attributes?.["param.name"]).toEqual("did:test:alice/mnemonic");
+
+		expect(
+			findSpan("method:TestComponent.getSecret").attributes?.[TracingFacadeAttributes.Result]
+		).toBeUndefined();
+		expect(
+			findSpan("method:TestComponent.importKey").attributes?.["param.privateKeyPem"]
+		).toBeUndefined();
+		expect(
+			findSpan("method:TestComponent.backupKey").attributes?.[TracingFacadeAttributes.Result]
+		).toBeUndefined();
+		expect(
+			findSpan("method:TestComponent.restoreKey").attributes?.["param.backup"]
+		).toBeUndefined();
+		expect(
+			findSpan("method:TestComponent.getDecryptionKey").attributes?.[TracingFacadeAttributes.Result]
+		).toBeUndefined();
+
+		const updatePassword = findSpan("method:TestComponent.updatePassword");
+		expect(updatePassword.attributes?.["param.currentPassword"]).toBeUndefined();
+		expect(updatePassword.attributes?.["param.newPassword"]).toBeUndefined();
 	});
 
 	test("scopes an exclusion to one method", async () => {
