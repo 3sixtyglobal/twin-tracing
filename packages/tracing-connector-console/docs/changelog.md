@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-console-v0.10.1-next.1...tracing-connector-console-v0.10.1-next.2) (2026-09-28)
+
+
+### Features
+
+* console disable colour option ([260db9c](https://github.com/iotaledger/twin-tracing/commit/260db9ca123bbe81317899c86c14a70d778b79af))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.10.1-next.1 to 0.10.1-next.2
+
 ## [0.10.1-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-console-v0.10.1-next.0...tracing-connector-console-v0.10.1-next.1) (2026-09-18)
 
 

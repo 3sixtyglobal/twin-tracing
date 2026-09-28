@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.1...tracing-facades-v0.10.1-next.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* do not record vault and authentication credentials by default ([#67](https://github.com/iotaledger/twin-tracing/issues/67)) ([abf30ae](https://github.com/iotaledger/twin-tracing/commit/abf30ae786348017f765ee6acd840fbf2e8f6337))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.10.1-next.1 to 0.10.1-next.2
+
 ## [0.10.1-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.0...tracing-facades-v0.10.1-next.1) (2026-09-18)
 
 

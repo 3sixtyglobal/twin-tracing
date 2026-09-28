@@ -1,10 +1,10 @@
 {
-	"packages/tracing-models": "0.10.1-next.1",
-	"packages/tracing-connector-entity-storage": "0.10.1-next.1",
-	"packages/tracing-connector-opentelemetry": "0.10.1-next.1",
-	"packages/tracing-service": "0.10.1-next.1",
-	"packages/tracing-rest-client": "0.10.1-next.1",
-	"packages/tracing-processors": "0.10.1-next.1",
-	"packages/tracing-connector-console": "0.10.1-next.1",
-	"packages/tracing-facades": "0.10.1-next.1"
+	"packages/tracing-models": "0.10.1-next.2",
+	"packages/tracing-connector-entity-storage": "0.10.1-next.2",
+	"packages/tracing-connector-opentelemetry": "0.10.1-next.2",
+	"packages/tracing-service": "0.10.1-next.2",
+	"packages/tracing-rest-client": "0.10.1-next.2",
+	"packages/tracing-processors": "0.10.1-next.2",
+	"packages/tracing-connector-console": "0.10.1-next.2",
+	"packages/tracing-facades": "0.10.1-next.2"
 }
