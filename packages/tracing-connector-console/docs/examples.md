@@ -37,6 +37,15 @@ so the output reads `traceId:spanId:parentSpanId`.
 new ConsoleTracingConnector({ config: { includeIds: true } });
 ```
 
+## Disabling colour
+
+The output is coloured with ANSI escape codes by default. Turn them off when writing to a
+destination which does not render them, such as a log file or a CI console.
+
+```typescript
+new ConsoleTracingConnector({ config: { disableColor: true } });
+```
+
 ## Narrowing what is shown
 
 An instrumented node produces a lot of spans. `kinds` restricts the output to the ones you care

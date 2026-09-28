@@ -54,12 +54,19 @@ export class ConsoleTracingConnector implements ITracingConnector {
 	private readonly _includeIds: boolean;
 
 	/**
+	 * Disable colour in the output.
+	 * @internal
+	 */
+	private readonly _disableColor: boolean;
+
+	/**
 	 * Create a new instance of ConsoleTracingConnector.
 	 * @param options The options for the tracing connector.
 	 */
 	constructor(options?: IConsoleTracingConnectorConstructorOptions) {
 		this._kinds = options?.config?.kinds ?? Object.values(SpanKind);
 		this._includeIds = options?.config?.includeIds ?? false;
+		this._disableColor = options?.config?.disableColor ?? false;
 	}
 
 	/**
@@ -171,13 +178,16 @@ export class ConsoleTracingConnector implements ITracingConnector {
 	}
 
 	/**
-	 * Add color to a string.
+	 * Add color to a string, unless colour is disabled.
 	 * @param message The string to colorize.
 	 * @param color The color to use.
 	 * @returns The colorized string.
 	 * @internal
 	 */
 	private colorize(message: string, color: "blue" | "cyan" | "green" | "magenta" | "red"): string {
+		if (this._disableColor) {
+			return message;
+		}
 		// eslint-disable-next-line unicorn/escape-case
 		return `\x1b[${ConsoleTracingConnector._COLORS[color]}m${message}\x1b[39m`;
 	}
