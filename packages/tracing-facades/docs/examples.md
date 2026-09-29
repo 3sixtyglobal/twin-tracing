@@ -62,7 +62,9 @@ config: {
 }
 ```
 
-`DEFAULT_EXCLUDE_PARAMS` covers `password`, `token`, `apiKey` and `mnemonic`, and applies when
+`DEFAULT_EXCLUDE_PARAMS` covers `password`, `token`, `apiKey`, `mnemonic`, `currentPassword`,
+`newPassword`, `setSecret.data`, `getSecret.resolved`, `importKey.privateKeyPem`,
+`backupKey.resolved`, `restoreKey.backup` and `getDecryptionKey.resolved`, and applies when
 `excludeParams` is not supplied. Spread it into a custom list to keep it.
 
 `includeObjects` records a parameter whose value is not primitive. A further segment selects a

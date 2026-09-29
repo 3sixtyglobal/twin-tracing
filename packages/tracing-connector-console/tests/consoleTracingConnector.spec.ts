@@ -311,6 +311,19 @@ describe("ConsoleTracingConnector", () => {
 			expect(String(logSpy.mock.calls[0][3])).toEqual("\x1b[36mcoloured\x1b[39m");
 		});
 
+		test("writes plain text when colour is disabled", async () => {
+			const plainConnector = new ConsoleTracingConnector({ config: { disableColor: true } });
+			const span = await plainConnector.startSpan("uncoloured");
+			span.attributes = { "exception.message": "test.boom" };
+			await plainConnector.endSpan(span, SpanStatus.Error);
+
+			const params = errorSpy.mock.calls[0].map(String);
+			expect(params[0]).toEqual("SPAN");
+			expect(params[3]).toEqual("uncoloured");
+			expect(params[params.length - 1]).toEqual("test.boom");
+			expect(params.join(" ")).not.toContain(String.fromCharCode(27));
+		});
+
 		test("routes an error span to console.error with the exception message", async () => {
 			const span = await connector.startSpan("boom");
 			span.attributes = { "exception.message": "test.boom" };

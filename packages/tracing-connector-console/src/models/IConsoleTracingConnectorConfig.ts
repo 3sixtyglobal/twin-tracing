@@ -16,4 +16,10 @@ export interface IConsoleTracingConnectorConfig {
 	 * @default false
 	 */
 	includeIds?: boolean;
+
+	/**
+	 * Disable colour in the output.
+	 * @default false
+	 */
+	disableColor?: boolean;
 }

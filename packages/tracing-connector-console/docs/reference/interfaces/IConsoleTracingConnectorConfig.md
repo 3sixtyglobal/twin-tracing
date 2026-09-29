@@ -23,3 +23,17 @@ Include the trace, span, and parent span ids in the output.
 ```ts
 false
 ```
+
+***
+
+### disableColor? {#disablecolor}
+
+> `optional` **disableColor?**: `boolean`
+
+Disable colour in the output.
+
+#### Default
+
+```ts
+false
+```

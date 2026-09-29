@@ -10,7 +10,7 @@ export class SpanEvent {
 	/**
 	 * The name of the event.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 256 })
 	public name!: string;
 
 	/**

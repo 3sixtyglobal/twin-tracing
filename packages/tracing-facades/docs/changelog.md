@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.1...tracing-facades-v0.10.1-next.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* do not record vault and authentication credentials by default ([#67](https://github.com/iotaledger/twin-tracing/issues/67)) ([abf30ae](https://github.com/iotaledger/twin-tracing/commit/abf30ae786348017f765ee6acd840fbf2e8f6337))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.10.1-next.1 to 0.10.1-next.2
+
+## [0.10.1-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.0...tracing-facades-v0.10.1-next.1) (2026-09-18)
+
+
+### Features
+
+* facade class name ([#46](https://github.com/iotaledger/twin-tracing/issues/46)) ([85cb60e](https://github.com/iotaledger/twin-tracing/commit/85cb60e127d4475394e2201d104adc557d408a41))
+* fail loudly when a facade resolves its own proxy ([#57](https://github.com/iotaledger/twin-tracing/issues/57)) ([9e8cc15](https://github.com/iotaledger/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
+* resolve facade components lazily ([#49](https://github.com/iotaledger/twin-tracing/issues/49)) ([c618911](https://github.com/iotaledger/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
+* tracing facade ([#43](https://github.com/iotaledger/twin-tracing/issues/43)) ([83f23ef](https://github.com/iotaledger/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/tracing-models bumped from 0.10.1-next.0 to 0.10.1-next.1
+
 ## [0.10.0](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.0...tracing-facades-v0.10.0) (2026-09-16)
 
 
