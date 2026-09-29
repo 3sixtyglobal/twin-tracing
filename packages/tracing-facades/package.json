@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/tracing-facades",
-	"version": "0.10.1-next.2",
+	"version": "0.11.1-next.0",
 	"description": "Applies tracing to factory produced components using a facade, without modifying them.",
 	"repository": {
 		"type": "git",
@@ -31,7 +31,7 @@
 		"@twin.org/core": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/tracing-models": "0.10.1-next.2"
+		"@twin.org/tracing-models": "0.11.1-next.0"
 	},
 	"devDependencies": {
 		"@twin.org/context": "next",

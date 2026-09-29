@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/tracing-connector-console",
-	"version": "0.10.1-next.2",
+	"version": "0.11.1-next.0",
 	"description": "Writes completed spans to the console for development visibility.",
 	"repository": {
 		"type": "git",
@@ -30,7 +30,7 @@
 	"dependencies": {
 		"@twin.org/core": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/tracing-models": "0.10.1-next.2"
+		"@twin.org/tracing-models": "0.11.1-next.0"
 	},
 	"devDependencies": {
 		"@twin.org/context": "next",

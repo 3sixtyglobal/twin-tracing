@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.11.0](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.11.0...tracing-connector-entity-storage-v0.11.0) (2026-09-29)
+
+
+### Features
+
+* add twin-tracing repository with OTel-aligned tracing API ([59b914c](https://github.com/iotaledger/twin-tracing/commit/59b914ca631c0b765973dfa5099a8f4e6115e325))
+* add twin-tracing repository with OTel-aligned tracing API ([affcd6c](https://github.com/iotaledger/twin-tracing/commit/affcd6c1cf2fbfd34d9a8849e860e5fe66a011e3))
+* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+* release to production [skip ci] ([#61](https://github.com/iotaledger/twin-tracing/issues/61)) ([39e3c18](https://github.com/iotaledger/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
+* release to production [skip ci] ([#72](https://github.com/iotaledger/twin-tracing/issues/72)) ([af98da3](https://github.com/iotaledger/twin-tracing/commit/af98da30fbf037730b3be9a2e9a3343020aff0af))
+
+
+### Bug Fixes
+
+* address PR review on tracing packages ([0832b5f](https://github.com/iotaledger/twin-tracing/commit/0832b5fc0e7414b4e0fd2393532df00e07ff1f43))
+
 ## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-connector-entity-storage-v0.10.1-next.1...tracing-connector-entity-storage-v0.10.1-next.2) (2026-09-28)
 
 
