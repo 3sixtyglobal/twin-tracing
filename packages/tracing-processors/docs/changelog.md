@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.0](https://github.com/iotaledger/twin-tracing/compare/tracing-processors-v0.11.0...tracing-processors-v0.11.0) (2026-09-29)
+
+
+### Features
+
+* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+* release to production [skip ci] ([#61](https://github.com/iotaledger/twin-tracing/issues/61)) ([39e3c18](https://github.com/iotaledger/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
+* release to production [skip ci] ([#72](https://github.com/iotaledger/twin-tracing/issues/72)) ([af98da3](https://github.com/iotaledger/twin-tracing/commit/af98da30fbf037730b3be9a2e9a3343020aff0af))
+
 ## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-processors-v0.10.1-next.1...tracing-processors-v0.10.1-next.2) (2026-09-28)
 
 
