@@ -4,7 +4,7 @@
 	"description": "Exposes tracing operations through service routes and API contracts for server-side integration.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-tracing.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing.git",
 		"directory": "packages/tracing-service"
 	},
 	"author": "martyn.janes@iota.org",
@@ -80,7 +80,7 @@
 		"business-logic"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-tracing/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing/issues"
 	},
 	"homepage": "https://twindev.org"
 }

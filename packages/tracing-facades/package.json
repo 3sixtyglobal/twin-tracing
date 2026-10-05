@@ -4,7 +4,7 @@
 	"description": "Applies tracing to factory produced components using a facade, without modifying them.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-tracing.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing.git",
 		"directory": "packages/tracing-facades"
 	},
 	"author": "martyn.janes@iota.org",
@@ -80,7 +80,7 @@
 		"observability"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-tracing/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing/issues"
 	},
 	"homepage": "https://twindev.org"
 }

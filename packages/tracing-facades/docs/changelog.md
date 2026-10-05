@@ -1,20 +1,20 @@
 # Changelog
 
-## [0.11.0](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.11.0...tracing-facades-v0.11.0) (2026-09-29)
+## [0.11.0](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.11.0...tracing-facades-v0.11.0) (2026-09-29)
 
 
 ### Features
 
-* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
-* release to production [skip ci] ([#61](https://github.com/iotaledger/twin-tracing/issues/61)) ([39e3c18](https://github.com/iotaledger/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
-* release to production [skip ci] ([#72](https://github.com/iotaledger/twin-tracing/issues/72)) ([af98da3](https://github.com/iotaledger/twin-tracing/commit/af98da30fbf037730b3be9a2e9a3343020aff0af))
+* release to production ([#27](https://github.com/3sixtyglobal/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/3sixtyglobal/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+* release to production [skip ci] ([#61](https://github.com/3sixtyglobal/twin-tracing/issues/61)) ([39e3c18](https://github.com/3sixtyglobal/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
+* release to production [skip ci] ([#72](https://github.com/3sixtyglobal/twin-tracing/issues/72)) ([af98da3](https://github.com/3sixtyglobal/twin-tracing/commit/af98da30fbf037730b3be9a2e9a3343020aff0af))
 
-## [0.10.1-next.2](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.1...tracing-facades-v0.10.1-next.2) (2026-09-28)
+## [0.10.1-next.2](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.10.1-next.1...tracing-facades-v0.10.1-next.2) (2026-09-28)
 
 
 ### Bug Fixes
 
-* do not record vault and authentication credentials by default ([#67](https://github.com/iotaledger/twin-tracing/issues/67)) ([abf30ae](https://github.com/iotaledger/twin-tracing/commit/abf30ae786348017f765ee6acd840fbf2e8f6337))
+* do not record vault and authentication credentials by default ([#67](https://github.com/3sixtyglobal/twin-tracing/issues/67)) ([abf30ae](https://github.com/3sixtyglobal/twin-tracing/commit/abf30ae786348017f765ee6acd840fbf2e8f6337))
 
 
 ### Dependencies
@@ -23,15 +23,15 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.10.1-next.1 to 0.10.1-next.2
 
-## [0.10.1-next.1](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.1-next.0...tracing-facades-v0.10.1-next.1) (2026-09-18)
+## [0.10.1-next.1](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.10.1-next.0...tracing-facades-v0.10.1-next.1) (2026-09-18)
 
 
 ### Features
 
-* facade class name ([#46](https://github.com/iotaledger/twin-tracing/issues/46)) ([85cb60e](https://github.com/iotaledger/twin-tracing/commit/85cb60e127d4475394e2201d104adc557d408a41))
-* fail loudly when a facade resolves its own proxy ([#57](https://github.com/iotaledger/twin-tracing/issues/57)) ([9e8cc15](https://github.com/iotaledger/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
-* resolve facade components lazily ([#49](https://github.com/iotaledger/twin-tracing/issues/49)) ([c618911](https://github.com/iotaledger/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
-* tracing facade ([#43](https://github.com/iotaledger/twin-tracing/issues/43)) ([83f23ef](https://github.com/iotaledger/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
+* facade class name ([#46](https://github.com/3sixtyglobal/twin-tracing/issues/46)) ([85cb60e](https://github.com/3sixtyglobal/twin-tracing/commit/85cb60e127d4475394e2201d104adc557d408a41))
+* fail loudly when a facade resolves its own proxy ([#57](https://github.com/3sixtyglobal/twin-tracing/issues/57)) ([9e8cc15](https://github.com/3sixtyglobal/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
+* resolve facade components lazily ([#49](https://github.com/3sixtyglobal/twin-tracing/issues/49)) ([c618911](https://github.com/3sixtyglobal/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
+* tracing facade ([#43](https://github.com/3sixtyglobal/twin-tracing/issues/43)) ([83f23ef](https://github.com/3sixtyglobal/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
 
 
 ### Dependencies
@@ -40,20 +40,20 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.10.1-next.0 to 0.10.1-next.1
 
-## [0.10.0](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.10.0...tracing-facades-v0.10.0) (2026-09-16)
+## [0.10.0](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.10.0...tracing-facades-v0.10.0) (2026-09-16)
 
 
 ### Features
 
-* release to production ([#27](https://github.com/iotaledger/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/iotaledger/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
-* release to production [skip ci] ([#61](https://github.com/iotaledger/twin-tracing/issues/61)) ([39e3c18](https://github.com/iotaledger/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
+* release to production ([#27](https://github.com/3sixtyglobal/twin-tracing/issues/27)) ([d1ed9dd](https://github.com/3sixtyglobal/twin-tracing/commit/d1ed9dde0b0d582dbbefb623e003042f5f36f051))
+* release to production [skip ci] ([#61](https://github.com/3sixtyglobal/twin-tracing/issues/61)) ([39e3c18](https://github.com/3sixtyglobal/twin-tracing/commit/39e3c18b96da35e107639314e1d18f2cfc7a9022))
 
-## [0.9.3-next.7](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.6...tracing-facades-v0.9.3-next.7) (2026-09-16)
+## [0.9.3-next.7](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.9.3-next.6...tracing-facades-v0.9.3-next.7) (2026-09-16)
 
 
 ### Features
 
-* fail loudly when a facade resolves its own proxy ([#57](https://github.com/iotaledger/twin-tracing/issues/57)) ([9e8cc15](https://github.com/iotaledger/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
+* fail loudly when a facade resolves its own proxy ([#57](https://github.com/3sixtyglobal/twin-tracing/issues/57)) ([9e8cc15](https://github.com/3sixtyglobal/twin-tracing/commit/9e8cc158a2c5f407c01755d03bb81836a5a53571))
 
 
 ### Dependencies
@@ -62,7 +62,7 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.9.3-next.6 to 0.9.3-next.7
 
-## [0.9.3-next.6](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.5...tracing-facades-v0.9.3-next.6) (2026-09-14)
+## [0.9.3-next.6](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.9.3-next.5...tracing-facades-v0.9.3-next.6) (2026-09-14)
 
 
 ### Miscellaneous Chores
@@ -76,12 +76,12 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.9.3-next.5 to 0.9.3-next.6
 
-## [0.9.3-next.5](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.4...tracing-facades-v0.9.3-next.5) (2026-09-10)
+## [0.9.3-next.5](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.9.3-next.4...tracing-facades-v0.9.3-next.5) (2026-09-10)
 
 
 ### Features
 
-* resolve facade components lazily ([#49](https://github.com/iotaledger/twin-tracing/issues/49)) ([c618911](https://github.com/iotaledger/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
+* resolve facade components lazily ([#49](https://github.com/3sixtyglobal/twin-tracing/issues/49)) ([c618911](https://github.com/3sixtyglobal/twin-tracing/commit/c6189111740eeecac31cc907cf330a993b3914a7))
 
 
 ### Dependencies
@@ -90,13 +90,13 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.9.3-next.4 to 0.9.3-next.5
 
-## [0.9.3-next.4](https://github.com/iotaledger/twin-tracing/compare/tracing-facades-v0.9.3-next.3...tracing-facades-v0.9.3-next.4) (2026-09-08)
+## [0.9.3-next.4](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-facades-v0.9.3-next.3...tracing-facades-v0.9.3-next.4) (2026-09-08)
 
 
 ### Features
 
-* facade class name ([#46](https://github.com/iotaledger/twin-tracing/issues/46)) ([85cb60e](https://github.com/iotaledger/twin-tracing/commit/85cb60e127d4475394e2201d104adc557d408a41))
-* tracing facade ([#43](https://github.com/iotaledger/twin-tracing/issues/43)) ([83f23ef](https://github.com/iotaledger/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
+* facade class name ([#46](https://github.com/3sixtyglobal/twin-tracing/issues/46)) ([85cb60e](https://github.com/3sixtyglobal/twin-tracing/commit/85cb60e127d4475394e2201d104adc557d408a41))
+* tracing facade ([#43](https://github.com/3sixtyglobal/twin-tracing/issues/43)) ([83f23ef](https://github.com/3sixtyglobal/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
 
 
 ### Dependencies
@@ -105,12 +105,12 @@
   * dependencies
     * @twin.org/tracing-models bumped from 0.9.3-next.3 to 0.9.3-next.4
 
-## [0.9.3-next.3](https://github.com/iotaledger/twin-tracing/compare/tracing-processors-v0.9.3-next.2...tracing-processors-v0.9.3-next.3) (2026-09-08)
+## [0.9.3-next.3](https://github.com/3sixtyglobal/twin-tracing/compare/tracing-processors-v0.9.3-next.2...tracing-processors-v0.9.3-next.3) (2026-09-08)
 
 
 ### Features
 
-* tracing facade ([#43](https://github.com/iotaledger/twin-tracing/issues/43)) ([83f23ef](https://github.com/iotaledger/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
+* tracing facade ([#43](https://github.com/3sixtyglobal/twin-tracing/issues/43)) ([83f23ef](https://github.com/3sixtyglobal/twin-tracing/commit/83f23eff032cc8be235ebfb33c5582bfa1c95ddf))
 
 
 ### Dependencies

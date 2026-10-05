@@ -18,3 +18,7 @@ The model interfaces align to OpenTelemetry span concepts: a trace represents th
 ## Contributing
 
 To contribute to this package see the guidelines for building and publishing in [CONTRIBUTING](./CONTRIBUTING.md)
+
+## Origin
+
+This repository is derived from the original [iotaledger/twin-tracing](https://github.com/iotaledger/twin-tracing) repository.

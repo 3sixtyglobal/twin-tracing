@@ -4,7 +4,7 @@
 	"description": "Persists spans to entity storage for durable retention, querying, and downstream processing.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-tracing.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing.git",
 		"directory": "packages/tracing-connector-entity-storage"
 	},
 	"author": "martyn.janes@iota.org",
@@ -86,7 +86,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-tracing/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing/issues"
 	},
 	"homepage": "https://twindev.org"
 }

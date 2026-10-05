@@ -4,7 +4,7 @@
 	"description": "Processors which record spans for inbound and outbound REST requests.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-tracing.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing.git",
 		"directory": "packages/tracing-processors"
 	},
 	"author": "martyn.janes@iota.org",
@@ -78,7 +78,7 @@
 		"processors"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-tracing/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing/issues"
 	},
 	"homepage": "https://twindev.org"
 }

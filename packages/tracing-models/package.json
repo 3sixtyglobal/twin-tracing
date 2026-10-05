@@ -4,7 +4,7 @@
 	"description": "Defines shared tracing contracts, span shapes, and connector interfaces used across the repository.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-tracing.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing.git",
 		"directory": "packages/tracing-models"
 	},
 	"author": "martyn.janes@iota.org",
@@ -77,7 +77,7 @@
 		"schemas"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-tracing/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-tracing/issues"
 	},
 	"homepage": "https://twindev.org"
 }
