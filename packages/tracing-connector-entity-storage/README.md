@@ -1,11 +1,11 @@
-# TWIN Tracing Connector Entity Storage
+# 3Sixty Tracing Connector Entity Storage
 
 Persists spans to entity storage for durable retention, querying, and downstream processing.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-connector-entity-storage
+npm install @3sixty/tracing-connector-entity-storage
 ```
 
 ## Examples

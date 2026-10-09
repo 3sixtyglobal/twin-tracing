@@ -5,14 +5,14 @@ Register the entity schema and a storage connector, then start, end, and query s
 ## Setup
 
 ```typescript
-import { MemoryEntityStorageConnector } from '@twin.org/entity-storage-connector-memory';
-import { EntityStorageConnectorFactory } from '@twin.org/entity-storage-models';
-import { nameof } from '@twin.org/nameof';
+import { MemoryEntityStorageConnector } from '@3sixty/entity-storage-connector-memory';
+import { EntityStorageConnectorFactory } from '@3sixty/entity-storage-models';
+import { nameof } from '@3sixty/nameof';
 import {
   EntityStorageTracingConnector,
   SpanEntity,
   initSchema
-} from '@twin.org/tracing-connector-entity-storage';
+} from '@3sixty/tracing-connector-entity-storage';
 
 initSchema();
 
@@ -31,7 +31,7 @@ const connector = new EntityStorageTracingConnector();
 ## Start and end a span
 
 ```typescript
-import { SpanKind, SpanStatus } from '@twin.org/tracing-models';
+import { SpanKind, SpanStatus } from '@3sixty/tracing-models';
 
 const span = await connector.startSpan('process-order', { kind: SpanKind.Server });
 
@@ -44,7 +44,7 @@ await connector.endSpan(span, SpanStatus.Ok);
 ## Query spans by trace
 
 ```typescript
-import { ComparisonOperator, LogicalOperator } from '@twin.org/entity';
+import { ComparisonOperator, LogicalOperator } from '@3sixty/entity';
 
 const result = await connector.query({
   logicalOperator: LogicalOperator.And,

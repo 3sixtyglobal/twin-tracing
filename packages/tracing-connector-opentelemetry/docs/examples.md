@@ -6,7 +6,7 @@ as the OpenTelemetry Collector, Grafana Alloy or Tempo, it does not implement `q
 ## Basic setup with an OTLP exporter
 
 ```typescript
-import { OpenTelemetryTracingConnector } from '@twin.org/tracing-connector-opentelemetry';
+import { OpenTelemetryTracingConnector } from '@3sixty/tracing-connector-opentelemetry';
 
 const connector = new OpenTelemetryTracingConnector({
   config: {
@@ -33,7 +33,7 @@ Spans are sent as OTLP over HTTP with a protobuf payload. `endpoint` is required
 Spans are exported when they end, because an OTLP receiver only accepts completed spans.
 
 ```typescript
-import { SpanKind, SpanStatus } from '@twin.org/tracing-models';
+import { SpanKind, SpanStatus } from '@3sixty/tracing-models';
 
 const span = await connector.startSpan('handle-request', { kind: SpanKind.Server });
 
@@ -108,9 +108,9 @@ a `MultiTracingConnector` in front. It mints the span context once and replicate
 the ids match on either side.
 
 ```typescript
-import { TracingConnectorFactory, MultiTracingConnector } from '@twin.org/tracing-models';
-import { EntityStorageTracingConnector } from '@twin.org/tracing-connector-entity-storage';
-import { OpenTelemetryTracingConnector } from '@twin.org/tracing-connector-opentelemetry';
+import { TracingConnectorFactory, MultiTracingConnector } from '@3sixty/tracing-models';
+import { EntityStorageTracingConnector } from '@3sixty/tracing-connector-entity-storage';
+import { OpenTelemetryTracingConnector } from '@3sixty/tracing-connector-opentelemetry';
 
 TracingConnectorFactory.register('entity-storage', () => new EntityStorageTracingConnector());
 TracingConnectorFactory.register('opentelemetry', () => connector);

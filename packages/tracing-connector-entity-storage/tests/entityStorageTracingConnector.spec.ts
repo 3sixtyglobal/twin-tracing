@@ -1,18 +1,18 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IPlatformComponent } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, NotFoundError } from "@twin.org/core";
-import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
+import type { IPlatformComponent } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, NotFoundError } from "@3sixty/core";
+import { ComparisonOperator, LogicalOperator } from "@3sixty/entity";
 import {
 	MemoryEntityStorageConnector,
 	type IMemoryEntityStorageConnectorConstructorOptions
-} from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import type { ILogEntry } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
-import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
-import type { ISpan, ITracingConnector } from "@twin.org/tracing-models";
+} from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import type { ILogEntry } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
+import { SpanHelper, SpanKind, SpanStatus } from "@3sixty/tracing-models";
+import type { ISpan, ITracingConnector } from "@3sixty/tracing-models";
 import type { Span } from "../src/entities/span.js";
 import type { SpanLink } from "../src/entities/spanLink.js";
 import { EntityStorageTracingConnector } from "../src/entityStorageTracingConnector.js";

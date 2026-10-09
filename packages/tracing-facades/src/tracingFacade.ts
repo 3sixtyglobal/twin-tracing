@@ -7,10 +7,10 @@ import {
 	SharedStore,
 	type IComponent,
 	type IFacade
-} from "@twin.org/core";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
-import { TracingHelper, type ITracingComponent } from "@twin.org/tracing-models";
+} from "@3sixty/core";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
+import { TracingHelper, type ITracingComponent } from "@3sixty/tracing-models";
 import type { ITracingFacadeConstructorOptions } from "./models/ITracingFacadeConstructorOptions.js";
 import { TracingFacadeAttributes } from "./models/tracingFacadeAttributes.js";
 

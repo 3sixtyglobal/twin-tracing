@@ -1,8 +1,8 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IRestClientProcessorContext } from "@twin.org/api-models";
-import { ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, GeneralError } from "@twin.org/core";
+import type { IRestClientProcessorContext } from "@3sixty/api-models";
+import { ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, GeneralError } from "@3sixty/core";
 import {
 	SpanHelper,
 	SpanKind,
@@ -12,8 +12,8 @@ import {
 	type ISpan,
 	type ISpanOptions,
 	type ITracingComponent
-} from "@twin.org/tracing-models";
-import { HttpMethod, HttpStatusCode } from "@twin.org/web";
+} from "@3sixty/tracing-models";
+import { HttpMethod, HttpStatusCode } from "@3sixty/web";
 import { TracingRestClientProcessor } from "../src/tracingRestClientProcessor.js";
 
 let ended: { span: ISpan; status?: SpanStatus }[] = [];

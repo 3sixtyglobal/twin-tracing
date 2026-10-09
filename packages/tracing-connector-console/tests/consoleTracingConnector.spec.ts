@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { SpanHelper, SpanKind, SpanStatus } from "@3sixty/tracing-models";
 import { ConsoleTracingConnector } from "../src/consoleTracingConnector.js";
 
 // This spec is intentionally kept in sync with all other tracing connector specs.

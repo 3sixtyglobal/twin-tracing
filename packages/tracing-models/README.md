@@ -1,11 +1,11 @@
-# TWIN Tracing Models
+# 3Sixty Tracing Models
 
 Defines shared tracing contracts, span shapes, and connector interfaces used across the repository.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-models
+npm install @3sixty/tracing-models
 ```
 
 ## Examples

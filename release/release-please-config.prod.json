@@ -8,6 +8,7 @@
 	"release-type": "node",
 	"initial-version": "0.0.1",
 	"versioning": "default",
+	"last-release-sha": "1a5095f18cb8d52183547965430206a877cf16f9",
 	"packages": {
 		"packages/tracing-models": {
 			"package-name": "tracing-models",

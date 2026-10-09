@@ -1,11 +1,11 @@
-# TWIN Tracing Connector OpenTelemetry
+# 3Sixty Tracing Connector OpenTelemetry
 
 Exports spans to an OTLP compatible endpoint using OpenTelemetry for consumption by observability backends.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-connector-opentelemetry
+npm install @3sixty/tracing-connector-opentelemetry
 ```
 
 ## Local Development
@@ -13,7 +13,7 @@ npm install @twin.org/tracing-connector-opentelemetry
 A local observability backend is required to receive and inspect exported spans. Start the Grafana LGTM stack in Docker:
 
 ```shell
-docker run -d --name twin-opentelemetry -p 4317:4317 -p 4318:4318 -p 3123:3000 -p 3200:3200 grafana/otel-lgtm
+docker run -d --name 3sixty-opentelemetry -p 4317:4317 -p 4318:4318 -p 3123:3000 -p 3200:3200 grafana/otel-lgtm
 ```
 
 Grafana is available at <http://localhost:3123> (credentials: admin/admin). Spans appear in the Tempo data source. Port 3200 exposes the Tempo HTTP query API used by the integration tests.

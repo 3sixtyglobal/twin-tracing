@@ -10,6 +10,7 @@
 	"versioning": "prerelease",
 	"prerelease": true,
 	"prerelease-type": "next",
+	"last-release-sha": "06c2bcbffd8a752aec26194b2e27a7795a9524f4",
 	"packages": {
 		"packages/tracing-models": {
 			"package-name": "tracing-models",

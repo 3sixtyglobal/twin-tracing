@@ -6,8 +6,8 @@ debugging. It is a pure sink and does not implement `query()`.
 ## Basic setup
 
 ```typescript
-import { ConsoleTracingConnector } from '@twin.org/tracing-connector-console';
-import { TracingConnectorFactory } from '@twin.org/tracing-models';
+import { ConsoleTracingConnector } from '@3sixty/tracing-connector-console';
+import { TracingConnectorFactory } from '@3sixty/tracing-models';
 
 TracingConnectorFactory.register('console', () => new ConsoleTracingConnector());
 ```
@@ -52,7 +52,7 @@ An instrumented node produces a lot of spans. `kinds` restricts the output to th
 about, for example only the inbound requests.
 
 ```typescript
-import { SpanKind } from '@twin.org/tracing-models';
+import { SpanKind } from '@3sixty/tracing-models';
 
 new ConsoleTracingConnector({ config: { kinds: [SpanKind.Server] } });
 ```
@@ -64,7 +64,7 @@ still exporting them. The span context is minted once and replicated, so the ids
 sides.
 
 ```typescript
-import { MultiTracingConnector, TracingConnectorFactory } from '@twin.org/tracing-models';
+import { MultiTracingConnector, TracingConnectorFactory } from '@3sixty/tracing-models';
 
 TracingConnectorFactory.register('console', () => new ConsoleTracingConnector());
 TracingConnectorFactory.register('opentelemetry', () => otelConnector);

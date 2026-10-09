@@ -1,11 +1,11 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComparisonOperator, LogicalOperator } from "@3sixty/entity";
+import { type ITracingConnector, SpanHelper, SpanKind, SpanStatus } from "@3sixty/tracing-models";
 import { SpanKind as OtelSpanKind, SpanStatusCode } from "@opentelemetry/api";
 import { hrTimeToMilliseconds } from "@opentelemetry/core";
 import { InMemorySpanExporter } from "@opentelemetry/sdk-trace";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
-import { type ITracingConnector, SpanHelper, SpanKind, SpanStatus } from "@twin.org/tracing-models";
 import { TEST_OTLP_ENDPOINT_TRACES } from "./setupTestEnv.js";
 import type { IOpenTelemetryTracingConnectorConfig } from "../src/models/IOpenTelemetryTracingConnectorConfig.js";
 import { OpenTelemetryTracingConnector } from "../src/openTelemetryTracingConnector.js";

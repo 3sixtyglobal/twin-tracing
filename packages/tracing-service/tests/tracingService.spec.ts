@@ -1,6 +1,6 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { EntityCondition, SortDirection } from "@twin.org/entity";
+import type { EntityCondition, SortDirection } from "@3sixty/entity";
 import {
 	SpanHelper,
 	TracingConnectorFactory,
@@ -9,7 +9,7 @@ import {
 	type ITracingConnector,
 	SpanStatus,
 	type SpanStatus as SpanStatusType
-} from "@twin.org/tracing-models";
+} from "@3sixty/tracing-models";
 import { TracingService } from "../src/tracingService.js";
 
 /**

@@ -1,4 +1,4 @@
-# @twin.org/tracing-service
+# @3sixty/tracing-service
 
 ## Classes
 

@@ -1,11 +1,11 @@
-# TWIN Tracing Connector Console
+# 3Sixty Tracing Connector Console
 
 Writes completed spans to the console for development visibility.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-connector-console
+npm install @3sixty/tracing-connector-console
 ```
 
 ## Examples

@@ -5,9 +5,9 @@ The service implements the tracing component contract and resolves a connector f
 ## Construct the service
 
 ```typescript
-import { TracingConnectorFactory } from '@twin.org/tracing-models';
-import { EntityStorageTracingConnector } from '@twin.org/tracing-connector-entity-storage';
-import { TracingService } from '@twin.org/tracing-service';
+import { TracingConnectorFactory } from '@3sixty/tracing-models';
+import { EntityStorageTracingConnector } from '@3sixty/tracing-connector-entity-storage';
+import { TracingService } from '@3sixty/tracing-service';
 
 TracingConnectorFactory.register('tracing', () => new EntityStorageTracingConnector());
 
@@ -17,7 +17,7 @@ const service = new TracingService();
 ## Record and query spans
 
 ```typescript
-import { SpanKind, SpanStatus } from '@twin.org/tracing-models';
+import { SpanKind, SpanStatus } from '@3sixty/tracing-models';
 
 const span = await service.startSpan('handle-request', { kind: SpanKind.Server });
 
@@ -31,7 +31,7 @@ const trace = await service.getTrace(span.context.traceId);
 ## Register the REST routes
 
 ```typescript
-import { generateRestRoutesTracing, tagsTracing } from '@twin.org/tracing-service';
+import { generateRestRoutesTracing, tagsTracing } from '@3sixty/tracing-service';
 
 const routes = generateRestRoutesTracing('tracing', 'tracing');
 ```

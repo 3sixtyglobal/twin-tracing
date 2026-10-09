@@ -10,8 +10,8 @@ opens, and the route processor on the receiving side continues from it.
 to the route processor types of the server.
 
 ```typescript
-import { ComponentFactory } from '@twin.org/core';
-import { TracingRouteProcessor } from '@twin.org/tracing-processors';
+import { ComponentFactory } from '@3sixty/core';
+import { TracingRouteProcessor } from '@3sixty/tracing-processors';
 
 ComponentFactory.register(
   'tracing-route-processor',
@@ -52,8 +52,8 @@ new TracingRouteProcessor({
 `traceparent` header so the service being called continues the same trace.
 
 ```typescript
-import { RestClientProcessorFactory } from '@twin.org/api-models';
-import { TracingRestClientProcessor } from '@twin.org/tracing-processors';
+import { RestClientProcessorFactory } from '@3sixty/api-models';
+import { TracingRestClientProcessor } from '@3sixty/tracing-processors';
 
 RestClientProcessorFactory.register(
   'tracing-client-processor',

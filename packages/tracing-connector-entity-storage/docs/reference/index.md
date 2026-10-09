@@ -1,4 +1,4 @@
-# @twin.org/tracing-connector-entity-storage
+# @3sixty/tracing-connector-entity-storage
 
 ## Classes
 

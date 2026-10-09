@@ -1,4 +1,4 @@
-# @twin.org/tracing-connector-console
+# @3sixty/tracing-connector-console
 
 ## Classes
 

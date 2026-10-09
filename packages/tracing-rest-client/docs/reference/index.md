@@ -1,4 +1,4 @@
-# @twin.org/tracing-rest-client
+# @3sixty/tracing-rest-client
 
 ## Classes
 

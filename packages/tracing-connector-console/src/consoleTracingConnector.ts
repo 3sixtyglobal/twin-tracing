@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Guards, Is, ObjectHelper } from "@twin.org/core";
-import { nameof } from "@twin.org/nameof";
+import { Guards, Is, ObjectHelper } from "@3sixty/core";
+import { nameof } from "@3sixty/nameof";
 import {
 	SpanAttributes,
 	SpanHelper,
@@ -10,7 +10,7 @@ import {
 	type ISpan,
 	type ISpanOptions,
 	type ITracingConnector
-} from "@twin.org/tracing-models";
+} from "@3sixty/tracing-models";
 import type { IConsoleTracingConnectorConstructorOptions } from "./models/IConsoleTracingConnectorConstructorOptions.js";
 
 /**

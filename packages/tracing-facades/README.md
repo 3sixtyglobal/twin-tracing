@@ -1,11 +1,11 @@
-# TWIN Tracing Facades
+# 3Sixty Tracing Facades
 
 Applies tracing to factory produced components using a facade, without modifying them.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-facades
+npm install @3sixty/tracing-facades
 ```
 
 ## Examples

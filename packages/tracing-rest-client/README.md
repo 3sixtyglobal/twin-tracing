@@ -1,11 +1,11 @@
-# TWIN Tracing Rest Client
+# 3Sixty Tracing Rest Client
 
 Provides a client for interacting with tracing service endpoints from applications and services.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-rest-client
+npm install @3sixty/tracing-rest-client
 ```
 
 ## Examples

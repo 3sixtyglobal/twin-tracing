@@ -7,8 +7,8 @@ hands out.
 ## Setup
 
 ```typescript
-import { ComponentFactory, FacadeFactory } from '@twin.org/core';
-import { TracingFacade } from '@twin.org/tracing-facades';
+import { ComponentFactory, FacadeFactory } from '@3sixty/core';
+import { TracingFacade } from '@3sixty/tracing-facades';
 
 FacadeFactory.register(
   'tracing',

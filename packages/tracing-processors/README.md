@@ -1,11 +1,11 @@
-# TWIN Tracing Processors
+# 3Sixty Tracing Processors
 
 Traces the HTTP boundary, recording spans for inbound routes and outbound REST requests and carrying the trace between services.
 
 ## Installation
 
 ```shell
-npm install @twin.org/tracing-processors
+npm install @3sixty/tracing-processors
 ```
 
 ## Examples

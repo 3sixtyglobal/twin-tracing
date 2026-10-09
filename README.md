@@ -1,4 +1,4 @@
-# TWIN Tracing
+# 3Sixty Tracing
 
 This repository provides reusable distributed-tracing building blocks for applications and services across the TWIN ecosystem. The packages are designed to work together so teams can model traces and spans consistently, persist them to different destinations, and expose or consume tracing capabilities through service interfaces.
 

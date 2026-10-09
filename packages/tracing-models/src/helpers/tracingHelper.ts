@@ -1,9 +1,9 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdStore, type IContextIds } from "@twin.org/context";
-import { BaseError, Is } from "@twin.org/core";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
+import { ContextIdStore, type IContextIds } from "@3sixty/context";
+import { BaseError, Is } from "@3sixty/core";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
 import { TraceparentHelper } from "./traceparentHelper.js";
 import type { ISpan } from "../models/ISpan.js";
 import type { ISpanContext } from "../models/ISpanContext.js";

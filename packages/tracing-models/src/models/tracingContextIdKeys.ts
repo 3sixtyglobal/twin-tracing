@@ -25,6 +25,6 @@ export const TracingContextIdKeys = {
 } as const;
 
 /**
- * The context id keys used by tracing, extending those from @twin.org/context.
+ * The context id keys used by tracing, extending those from @3sixty/context.
  */
 export type TracingContextIdKeys = (typeof TracingContextIdKeys)[keyof typeof TracingContextIdKeys];

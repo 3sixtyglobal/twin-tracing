@@ -5,7 +5,7 @@ Use these examples to register connectors, mint span contexts, and build spans.
 ## SpanHelper
 
 ```typescript
-import { SpanHelper, SpanKind, SpanStatus } from '@twin.org/tracing-models';
+import { SpanHelper, SpanKind, SpanStatus } from '@3sixty/tracing-models';
 
 const root = SpanHelper.startSpan('process-order', {
   kind: SpanKind.Server,
@@ -24,7 +24,7 @@ SpanHelper.endSpan(root, SpanStatus.Ok);
 ## SilentTracingConnector
 
 ```typescript
-import { SilentTracingConnector, SpanStatus } from '@twin.org/tracing-models';
+import { SilentTracingConnector, SpanStatus } from '@3sixty/tracing-models';
 
 const connector = new SilentTracingConnector();
 
@@ -36,7 +36,7 @@ await connector.endSpan(span, SpanStatus.Ok);
 ## TracingConnectorFactory
 
 ```typescript
-import { SilentTracingConnector, TracingConnectorFactory } from '@twin.org/tracing-models';
+import { SilentTracingConnector, TracingConnectorFactory } from '@3sixty/tracing-models';
 
 TracingConnectorFactory.register('silent', () => new SilentTracingConnector());
 
@@ -49,7 +49,7 @@ const connector = TracingConnectorFactory.get('silent');
 is taken from the span currently in scope, so nested calls form a tree.
 
 ```typescript
-import { SpanKind, TracingHelper } from '@twin.org/tracing-models';
+import { SpanKind, TracingHelper } from '@3sixty/tracing-models';
 
 await TracingHelper.withSpan(
   tracingComponent,
@@ -86,7 +86,7 @@ Converts between a span context and the W3C `traceparent` header, which is how a
 between services.
 
 ```typescript
-import { TraceparentHelper, TracingHelper } from '@twin.org/tracing-models';
+import { TraceparentHelper, TracingHelper } from '@3sixty/tracing-models';
 
 // Outbound: send the span in scope to the next service.
 const current = await TracingHelper.getCurrentSpanContext();
@@ -104,8 +104,8 @@ from a remote caller starts a new trace instead of failing the request.
 The parts of the current span are held as context ids.
 
 ```typescript
-import { ContextIdStore } from '@twin.org/context';
-import { TracingContextIdKeys } from '@twin.org/tracing-models';
+import { ContextIdStore } from '@3sixty/context';
+import { TracingContextIdKeys } from '@3sixty/tracing-models';
 
 const contextIds = await ContextIdStore.getContextIds();
 
